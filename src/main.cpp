@@ -1,67 +1,87 @@
-//geladene Bibliotheken
+// Project Description...
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// included libraries:
 #include <Arduino.h>
-#include <MFRC522.h>
-#include <SPI.h>
-#include <LiquidCrystal_I2C.h> // Bibliothek für I2C Display
-#include <Keypad.h> // Bibliothek für Keypad
+#include <Keypad.h>             // Library for Keypad
+#include <LiquidCrystal_I2C.h>  // Library for I2C Display
+#include <MFRC522.h>            // Library for RFID Reader
+#include <SPI.h>                // Library for SPI Communication (for RFID Reader)
+#include <Wire.h>               // opt
+#include <stdio.h>              // opt
+#include <string.h>             // opt
+#include <stream.h>             // opt
 
-// Anzahl der im LCD Display vorhandenen Zeichen pro Zeile (verwendet wird ein 20x4 Zeichen I2C Display)
-const byte LEDLINE = 20;
-LiquidCrystal_I2C lcd(0x27,20,4); //Einstellen der LCD Adresse auf 0x27, sowie für 20 Zeichen und 4 Zeilen
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Pin-declarations & related variables:
 
-// Definieren der Scrollgeschwindigkeit für die 4 LED Zeilen. es sind individuelle Geschwinidkeit je Zeile möglich
-const int ledScrollSpeed[4]={300,300,300,300};
-// Definieren der Scrollrichtung für ein 4 Zeilen Display (true bedeutet von rechts nach links))
-const boolean ledScrollDir[4]={true,true,true,true};   
-// Definition der Textvariablen des LCD Displays - 2-dimensionales Array für 4 Zeilen mit je 178 Zeichen --> //Da das LCD Display 20 Zeilen hat müssen im String immer mindestens 20 Zeichen angegeben sein --> Ggf. mit Leerzeichen auf 20 Zeichen auffüllen! Sonst kann es zu Artefakten auf dem Display vom vorherigen Text kommen!
-char TextZeile[4][178];
-char LastTextZeile[4][178];  //{{0},{0},{0},{0}};    letzten Zustand der Textzeile merken um Veränderungen zu erkennen!
+// LCD Display
+const byte ledLine = 20;                                   // Anzahl der im LCD Display vorhandenen Zeichen pro Zeile (verwendet wird ein 20x4 Zeichen I2C Display)
+LiquidCrystal_I2C lcd(0x27, 20, 4);                        // Einstellen der LCD Adresse auf 0x27, sowie für 20 Zeichen und 4 Zeilen
+const int ledScrollSpeed[4] = {300, 300, 300, 300};        // Definieren der Scrollgeschwindigkeit für die 4 LED Zeilen. es sind individuelle Geschwinidkeit je Zeile möglich
+const boolean ledScrollDir[4] = {true, true, true, true};  // Definieren der Scrollrichtung für ein 4 Zeilen Display (true bedeutet von rechts nach links))
+char textRow[4][178];                                      // Definition der Textvariablen des LCD Displays - 2-dimensionales Array für 4 Zeilen mit je 178 Zeichen --> //Da das LCD Display 20 Zeilen hat müssen im String immer mindestens 20 Zeichen angegeben sein --> Ggf. mit Leerzeichen auf 20 Zeichen auffüllen! Sonst kann es zu Artefakten auf dem Display vom vorherigen Text kommen!
+char lastTextRow[4][178];                                  //{{0},{0},{0},{0}};    letzten Zustand der Textzeile merken um Veränderungen zu erkennen!
 
-// Pin-Definition für die Alarmsirene
-#define alarm_siren 2
+// stuff
+#define alarmSiren 2      // Pin-Definition für die Alarmsirene
+#define doorLock 7        // Pin-Definition für das Türschloss
+#define doorLockSensor 8  // Pin-Deginition für den Türschloss-Sensor
 
-// Pin-Definition für das Türschloss
-#define door_lock 7
-
-// Pin-Deginition für den Türschloss-Sensor
-#define door_lock_sensor 8
-
-// Pin-Definitionen für das RFID-Lesegerät
+// RFID-Reader
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 rfidReader(SS_PIN, RST_PIN);
 
-// Pin-Definitionen für die Status-LED
-#define StatusLED_red 9                     // Pin für den roten Kanal
-#define StatusLED_green 10                  // Pin für den grünen Kanal
-#define StatusLED_blue 11                   // Pin für den blauen Kanal
+// Status-LED
+#define statusLedRed 9     // Pin für den roten Kanal
+#define statusLedGreen 10  // Pin für den grünen Kanal
+#define statusLedBlue 11   // Pin für den blauen Kanal
 
-// Pin-Definitionen für das Keypad
-    const byte ROW_NUM    = 4; // vier Reihen
-    const byte COLUMN_NUM = 3; // drei Spalten
+typedef enum LedColor {
+    RED,
+    GREEN,
+    BLUE,
+    YELLOW,
+    CYAN,
+    MAGENTA,
+    WHITE,
+    OFF
+};
+LedColor statusLedColor = OFF;
 
-    char keys[ROW_NUM][COLUMN_NUM] = {
-    {'1','2','3'},
-    {'4','5','6'},
-    {'7','8','9'},
-    {'*','0','#'}
-    };
+// Keypad
+const byte rowAmount = 4;     // vier Reihen
+const byte columnAmount = 3;  // drei Spalten
 
-    byte pin_rows[ROW_NUM] = {9, 8, 7, 6};    // verbinde die Reihen mit diesen Pins
-    byte pin_column[COLUMN_NUM] = {5, 4, 3}; // verbinde die Spalten mit diesen Pins
+char keys[rowAmount][columnAmount] = {
+    {'1', '2', '3'},
+    {'4', '5', '6'},
+    {'7', '8', '9'},
+    {'*', '0', '#'}};
 
-    Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
+byte pinRows[rowAmount] = {9, 8, 7, 6};    // verbinde die Reihen mit diesen Pins
+byte pinColumn[columnAmount] = {5, 4, 3};  // verbinde die Spalten mit diesen Pins
 
-    char firstKey = '\0';
-    unsigned long lastKeyPressTime = 0;
-    const unsigned long resetTimeout = 5000; // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
+Keypad keypad = Keypad(makeKeymap(keys), pinRows, pinColumn, rowAmount, columnAmount);
 
+char firstKey = '\0';
+unsigned long lastKeyPressTime = 0;
+const unsigned long resetTimeout = 5000;  // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
+int keyNumberVar = 0;                     // Globale Variable für die Zahlenkombination des Keypads
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Deklaration der Zustände:
-typedef enum {
+// global variables:
+State state = INACTIVE;
+State previousState = STARTING;
+
+unsigned long currentStateEnteredTime;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// state deklarations:
+typedef enum State {
+    STARTING,
     INACTIVE,
-    TESTING,
 
     READY,
 
@@ -78,62 +98,46 @@ typedef enum {
     LOGGED_IN_KEY_SEARCH,
     GUEST_KEY_SEARCH
 
-} State;
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Globale Deklaration der Variablen:
-State state = INACTIVE;                      // Zustandsvariable
-
-bool should_StatusLED_blink = false;        // Varibale zur Steuerung des Blinkens
-
-int StatusLED_red_var = 255;                // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)        
-int StatusLED_green_var = 255;              // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)       
-int StatusLED_blue_var = 255;               // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)       
-
-int key_number_var = 0;                     // Globale Variable für die Zahlenkombination des Keypads
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Initialisiere Code:
+// setup:
 void setup() {
     Serial.begin(9600);
-        SPI.begin();
+
+    // RFID Reader initialisation
+    SPI.begin();
     rfidReader.PCD_Init();
 
-    //LCD Display initialisieren und Hintergrundbeleuchtung aktivieren
-    lcd.init(); 
+    // LCD Display initialisation
+    lcd.init();
     lcd.backlight();
-
     // Willkommenstext anzeigen
-    strcpy(TextZeile[0], "    IFU Stuttgart   "); //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "  Schlüsselausgabe "); //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "  2024 Version 1.0  "); //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "->Tür schließen!<-"); //Text für Zeile 4 des LCD Displays
+    strcpy(textRow[0], "   IFU Stuttgart    ");
+    strcpy(textRow[1], "  Schlüsselausgabe  ");
+    strcpy(textRow[2], "  2024 Version 1.0  ");
+    strcpy(textRow[3], " ->Tür schließen!<- ");
+    // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays
+    taskText(textRow[0], 0);
+    taskText(textRow[1], 1);
+    taskText(textRow[2], 2);
+    taskText(textRow[3], 3);
 
-    //Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays
-    task_text(TextZeile[0], 0);
-    task_text(TextZeile[1], 1);
-    task_text(TextZeile[2], 2);
-    task_text(TextZeile[3], 3);
+    // OUTPUT-Pins
+    pinMode(statusLedRed, OUTPUT);
+    pinMode(statusLedGreen, OUTPUT);
+    pinMode(statusLedBlue, OUTPUT);
+    pinMode(doorLock, OUTPUT);
+    pinMode(alarmSiren, OUTPUT);
 
-    // Initialisiere die Pins der Status-LED als Ausgänge
-    pinMode(StatusLED_red, OUTPUT);
-    pinMode(StatusLED_green, OUTPUT);
-    pinMode(StatusLED_blue, OUTPUT);
+    // INPUT-Pins
+    pinMode(doorLockSensor, INPUT);
 
-    // Initialisiere den Pin des Schrankschlosses als Ausgang
-    pinMode(door_lock, OUTPUT);
-
-    // Initialisiere den Pin des Schrankschloss-Sensors als Eingang
-    pinMode(door_lock_sensor, INPUT);
-
-    // Initialisiere den Pin der Alarmsirene als Ausgang
-    pinMode(alarm_siren, OUTPUT);
-
+    currentStateEnteredTime = millis();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Arduino Loop:
+// state-machine-loop:
 void loop() {
     switch (state) {
         case INACTIVE:
@@ -143,232 +147,390 @@ void loop() {
             ready();
             break;
         case LOGGED_IN:
-            logged_in();
+            loggedIn();
             break;
         case LOGGED_IN_KEY_RETURN:
-            logged_in_key_return();
+            loggedInKeyReturn();
             break;
         case GUEST_KEY_RETURN:
-            guest_key_return();
+            guestKeyReturn();
             break;
         case GUEST_WAITING:
-            guest_waiting();
+            guestWaiting();
             break;
         case WRONG_KEY_EXCHANGE:
-            wrong_key_exchange();
+            wrongKeyExchange();
             break;
         case WAITING_FOR_WRONG_KEY:
-            waiting_for_wrong_key();
+            waitingForWrongKey();
             break;
         case LOGGED_IN_KEY_SEARCH:
-            logged_in_key_search();
+            loggedInKeySearch();
             break;
         case GUEST_KEY_SEARCH:
-            guest_key_search();
+            guestKeySearch();
             break;
         default:
             break;
     }
 
-    // Wenn die Bedingung erfüllt ist, führe die Status-LED Blink-Funktion aus, sonst setzte permanent die Farbe der Status-LED
-    if (should_StatusLED_blink) {
-        blink_status_led();
-    }
-    else {
-        setcolor_status_led_on();
-    }
-
     // Überprüfe ob die Schranktür geschlossen ist
-    check_door_lock_sensor();
+    checkDoorLockSensor();
 
-    //Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays am Ende der Void Loop Funktion!
-    task_text(TextZeile[0],0);
-    task_text(TextZeile[1],1);
-    task_text(TextZeile[2],2);
-    task_text(TextZeile[3],3);
-
+    // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays am Ende der Void Loop Funktion!
+    taskText(textRow[0], 0);
+    taskText(textRow[1], 1);
+    taskText(textRow[2], 2);
+    taskText(textRow[3], 3);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-// Funktionen:
-
-// Funktion zum Setzen der Farbe der Status-LED
-void setcolor_status_led_on() {
-
-    analogWrite(StatusLED_red, StatusLED_red_var);
-    analogWrite(StatusLED_green, StatusLED_green_var);
-    analogWrite(StatusLED_blue, StatusLED_blue_var);
-
-}
-
-// Funktion zum Ausschalten der Status-LED
-void setcolor_status_led_off() {
-    
-    analogWrite(StatusLED_red, 0);
-    analogWrite(StatusLED_green, 0);
-    analogWrite(StatusLED_blue, 0);
-}
-
-// Funktion zum Blinken der Status-LED
-void blink_status_led() {
-
-    int duration = 500;                                     // Blinken alle 500 Millisekunden (0,5 Sekunden)
-    static unsigned long previousMillis = 0;
-    unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= duration) {
-    previousMillis = currentMillis;
-
-    // Wechsle den Zustand der Status-LED (an/aus)
-    static bool isStatusLEDOn = false;
-    if (isStatusLEDOn) {
-      setcolor_status_led_off(); // Schalte die LED aus
-    } else {
-      setcolor_status_led_on(); // Setze die Farbe der LED
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// state-change-function:
+void changeStateTo(State newState) {
+    currentStateEnteredTime = millis();
+    switch (newState) {
+        case INACTIVE:
+            initiateInactive();
+            break;
+        case READY:
+            initiateReady();
+            break;
+        case LOGGED_IN:
+            initiateLoggedIn();
+            break;
+        case LOGGED_IN_KEY_RETURN:
+            initiateLoggedInKeyReturn();
+            break;
+        case GUEST_KEY_RETURN:
+            initiateLoggedInKeyReturn();  // TODO
+            break;
+        case GUEST_WAITING:
+            initiateLoggedInKeyReturn();  // TODO
+            break;
+        case WRONG_KEY_EXCHANGE:
+            initiateLoggedInKeyReturn();  //...
+            break;
+        case WAITING_FOR_WRONG_KEY:
+            initiateLoggedInKeyReturn();  //...
+            break;
+        case LOGGED_IN_KEY_SEARCH:
+            initiateLoggedInKeyReturn();  //...
+            break;
+        case GUEST_KEY_SEARCH:
+            initiateLoggedInKeyReturn();  //...
+            break;
+        default:
+            break;
     }
-
-    isStatusLEDOn = !isStatusLEDOn;
-  }
-
+    state = newState;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// state-functions:
+void initiateInactive() {
+}
+void inactive() {
+    // state repetition:
+    blinkStatusLed(RED);
+
+    // state changeconditions:
+    if (isDoorLocked()) {
+        state = READY;
+        changeStateTo(READY);
+    }
+}
+
+void initiateReady() {
+    setStatusLed(RED);
+    closeDoorLock();  // Türschloss schließen
+
+    strcpy(textRow[0], "Scannen Sie Ihren   ");
+    strcpy(textRow[1], "RFID-Chip oder      ");
+    strcpy(textRow[2], "einen               ");
+    strcpy(textRow[3], "Schlüsselanhänger.  ");
+}
+void ready() {
+    // state repetition:
+
+    // state changeconditions:
+    keyNumberVar = keypadReadout();  // Auslesen des Keypads
+    if (isRfidPresented()) {
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
+            //
+        } else if (isRfidEmployee(rfidId)) {
+            //
+        } else {
+            // print a warning for a wrong RFID device
+        }
+    } else if (keyNumberVar != 0) {  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
+        changeStateTo(GUEST_KEY_SEARCH);
+    }
+}
+
+void initiateLoggedIn() {
+    setStatusLed(GREEN);
+    openDoorLock();
+
+    strcpy(textRow[0], "Schlüssel entnehmen ");
+    strcpy(textRow[1], "oder zur Rückgabe   ");
+    strcpy(textRow[2], "Schlüsselband       ");
+    strcpy(textRow[3], "einscannen.         ");
+}
+void loggedIn() {
+    // state repetition:
+
+    // state changeconditions:
+}
+
+void initiateLoggedInKeyReturn() {
+    strcpy(textRow[0], "Stecken Sie         ");
+    strcpy(textRow[1], "den gescannten      ");
+    strcpy(textRow[2], "Schlüssel zurück.   ");
+    strcpy(textRow[3], "                    ");
+
+    previousState = LOGGED_IN_KEY_RETURN;
+}
+void loggedInKeyReturn() {
+    // state repetition:
+    blinkStatusLed(GREEN);
+
+    // state changeconditions:
+}
+
+void guestKeyReturn() {
+    // Farbeinstellung der Status-LED
+    blinkStatusLed(BLUE);
+
+    openDoorLock();  // Türschloss öffnen
+
+    // Text für LCD Display
+    strcpy(textRow[0], "Stecken Sie         ");
+    strcpy(textRow[1], "den gescannten      ");
+    strcpy(textRow[2], "Schlüssel zurück.   ");
+    strcpy(textRow[3], "                    ");
+}
+
+void guestWaiting() {
+    // Farbeinstellung der Status-LED
+    setStatusLed(BLUE);
+
+    // Text für LCD Display
+    strcpy(textRow[0], "Vorgang             ");
+    strcpy(textRow[1], "abgeschlossen. Neuen");
+    strcpy(textRow[2], "Schlüssel einscannen");
+    strcpy(textRow[3], "oder Türe schließen.");
+}
+
+void wrongKeyExchange() {
+    // Farbeinstellung der Status-LED
+    blinkStatusLed(RED);
+
+    openDoorLock();  // Türschloss öffnen
+
+    // Text für LCD Display
+    strcpy(textRow[0], "Tauschen Sie den    ");
+    strcpy(textRow[1], "Schlüssel der roten");
+    strcpy(textRow[2], "LED mir dem einge-  ");
+    strcpy(textRow[3], "scannten Schlüssel.");
+}
+
+void waitingForWrongKey() {
+    // Farbeinstellung der Status-LED
+    blinkStatusLed(YELLOW);
+
+    // Text für LCD Display
+    strcpy(textRow[0], "Tauschen Sie den    ");
+    strcpy(textRow[1], "Schlüssel der roten ");
+    strcpy(textRow[2], "LED mir dem einge-  ");
+    strcpy(textRow[3], "scannten Schlüssel. ");
+}
+
+void loggedInKeySearch() {
+    // Farbeinstellung der Status-LED
+    setStatusLed(GREEN);
+}
+
+void guestKeySearch() {
+    // Farbeinstellung der Status-LED
+    setStatusLed(RED);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// functions:
+
+boolean isDoorLocked() {
+    return digitalRead(doorLockSensor) == HIGH;
+}
+
+void setStatusLed(LedColor color) {
+    switch (color) {
+        case RED:
+            setStatusLed(255, 0, 0);
+            break;
+        case GREEN:
+            setStatusLed(0, 255, 0);
+            break;
+        case BLUE:
+            setStatusLed(0, 0, 255);
+            break;
+        case YELLOW:
+            setStatusLed(255, 255, 0);
+            break;
+        case CYAN:
+            setStatusLed(0, 255, 255);
+            break;
+        case MAGENTA:
+            setStatusLed(255, 0, 255);
+            break;
+        case WHITE:
+            setStatusLed(255, 255, 255);
+            break;
+        case OFF:
+            setStatusLed(0, 0, 0);
+            break;
+        default:
+            setStatusLed(0, 0, 0);
+            break;
+    }
+}
+
+void setStatusLed(int red, int green, int blue) {
+    digitalWrite(statusLedRed, red);
+    digitalWrite(statusLedGreen, green);
+    digitalWrite(statusLedBlue, blue);
+}
+
+void blinkStatusLed(LedColor color) {
+    int blinkDuration = 500;  // in ms
+    if (millis() % (blinkDuration * 2) < blinkDuration) {
+        setStatusLed(color);
+    } else {
+        setStatusLed(OFF);
+    }
+}
 
 // Funktion zum öffnen des Türschlosses
-void open_door_lock() {
-
-    digitalWrite(door_lock, HIGH);      // Türschloss auf
-
+void openDoorLock() {
+    digitalWrite(doorLock, HIGH);  // Türschloss auf
 }
 
 // Funktion zum schließen des Türschlosses
-void close_door_lock() {
-
-    digitalWrite(door_lock, LOW);       // Türschloss zu
-
+void closeDoorLock() {
+    digitalWrite(doorLock, LOW);  // Türschloss zu
 }
 
 // Funktion zum überprüfen ob Tür geschlossen ist
-void check_door_lock_sensor() {
-
-    if (digitalRead(door_lock_sensor) == HIGH && state != WRONG_KEY_EXCHANGE) { // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrong_key_exchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
-        delay(3000);                    // Warte 3 Sekunden bis das Türschloss sich schließt
-        close_door_lock();              // Türschloss schließen
+void checkDoorLockSensor() {
+    if (digitalRead(doorLockSensor) == HIGH && state != WRONG_KEY_EXCHANGE) {  // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrongKeyExchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
+        delay(3000);                                                           // Warte 3 Sekunden bis das Türschloss sich schließt
+        closeDoorLock();                                                       // Türschloss schließen
         state = READY;
     }
-
 }
 
-//Funktion für die Scrollfunktion, um den Text in der Variable zu schieben!
+// Funktion für die Scrollfunktion, um den Text in der Variable zu schieben!
 char charAt(char *text, int pos)
 // scrolling-logic coded here
 {
-  if (pos<LEDLINE) return ' '; // scroll in
-  else if (pos>=LEDLINE && pos<LEDLINE+strlen(text))
-    return text[pos-LEDLINE]; // scroll text
-  else return ' ';  // scroll out
+    if (pos < ledLine)
+        return ' ';  // scroll in
+    else if (pos >= ledLine && pos < ledLine + strlen(text))
+        return text[pos - ledLine];  // scroll text
+    else
+        return ' ';  // scroll out
 }
 
-//Zeitlicher Ablauf wann gescrollt werden muss und ob die Textlänge ein Scrollen erfordert prüfen und ggf. Scrollen durchführen
-void task_text(char *text, byte line)
+// Zeitlicher Ablauf wann gescrollt werden muss und ob die Textlänge ein Scrollen erfordert prüfen und ggf. Scrollen durchführen
+void taskText(char *text, byte line)
 // scroll the LED lines
 {
-  char currenttext[LEDLINE+1];
-  static unsigned long nextscroll[4];
-  static int positionCounter[4]; 
-  int i;
-  
-  //Textinhalte des 2dimensionalen Arrays vergleichen. hats sich inhaltlich ewats verändert --> Position dieser Zeile auf Null setzen
-  if (strcmp(text, LastTextZeile[line]) != 0){
-    positionCounter[line] = 0;
-    //Hier muss der aktuelle Text in die LastTextzeile[][] Variable kopiert werden!
-    strcpy(LastTextZeile[line], text);
-  }
-  //Beim Wechsel der Textlänge kann der positionCounter des Textes beim Scrollen zu hoch sein und sich nicht mehr zurückstellen --> Dann würde der Text nicht angezeigt werden! --> Hier muss die Position  zurückgesetzt werden!
-  if (ledScrollDir[line] == true && positionCounter[line] > (strlen(text) + LEDLINE)){ //für nach links scrollen
-    positionCounter[line]=0;
-  }
-  else if (positionCounter[line]<0){ //für nach rechts scrollen
-    positionCounter[line]=strlen(text)+LEDLINE-1;
-  }
-  
+    char currentText[ledLine + 1];
+    static unsigned long nextScroll[4];
+    static int positionCounter[4];
+    int i;
 
-  
-  //Prüfen ob Zeitpunkt zum Scrollen jetzt vorhanden und ob die Textlänge scrollen nötig macht!
-  if (millis()>nextscroll[line] && strlen(text)>LEDLINE)
-  {
-    nextscroll[line]=millis()+ledScrollSpeed[line]; 
+    // Textinhalte des 2dimensionalen Arrays vergleichen. hats sich inhaltlich ewats verändert --> Position dieser Zeile auf Null setzen
+    if (strcmp(text, lastTextRow[line]) != 0) {
+        positionCounter[line] = 0;
+        // Hier muss der aktuelle Text in die LastTextzeile[][] Variable kopiert werden!
+        strcpy(lastTextRow[line], text);
+    }
+    // Beim Wechsel der Textlänge kann der positionCounter des Textes beim Scrollen zu hoch sein und sich nicht mehr zurückstellen --> Dann würde der Text nicht angezeigt werden! --> Hier muss die Position  zurückgesetzt werden!
+    if (ledScrollDir[line] == true && positionCounter[line] > (strlen(text) + ledLine)) {  // für nach links scrollen
+        positionCounter[line] = 0;
+    } else if (positionCounter[line] < 0) {  // für nach rechts scrollen
+        positionCounter[line] = strlen(text) + ledLine - 1;
+    }
 
-    for (i=0;i<LEDLINE;i++)
-      currenttext[i]=charAt(text,positionCounter[line]+i);
-    currenttext[LEDLINE]=0;    
+    // Prüfen ob Zeitpunkt zum Scrollen jetzt vorhanden und ob die Textlänge scrollen nötig macht!
+    if (millis() > nextScroll[line] && strlen(text) > ledLine) {
+        nextScroll[line] = millis() + ledScrollSpeed[line];
 
-    lcd.setCursor(0,line);
-    lcd.print(currenttext);
+        for (i = 0; i < ledLine; i++)
+            currentText[i] = charAt(text, positionCounter[line] + i);
+        currentText[ledLine] = 0;
 
-    if (ledScrollDir[line])
+        lcd.setCursor(0, line);
+        lcd.print(currentText);
+
+        if (ledScrollDir[line]) {
+            positionCounter[line]++;
+            if (positionCounter[line] == strlen(text) + ledLine) positionCounter[line] = 0;
+        } else {
+            positionCounter[line]--;
+            if (positionCounter[line] < 0) positionCounter[line] = strlen(text) + ledLine - 1;
+        }
+    } else if (millis() > nextScroll[line] && strlen(text) <= ledLine)  // geändert von if -> else if
     {
-        positionCounter[line]++;
-        if (positionCounter[line]==strlen(text)+LEDLINE) positionCounter[line]=0;
-    }  
-    else  
-    {
-        positionCounter[line]--;
-        if (positionCounter[line]<0) positionCounter[line]=strlen(text)+LEDLINE-1;
-    }  
-  }
-  else if (millis() > nextscroll[line] && strlen(text) <= LEDLINE) //geändert von if -> else if
-  {
-    nextscroll[line]=millis()+ ledScrollSpeed[line];
-    lcd.setCursor(0,line);
-    lcd.print(text);
-  }
+        nextScroll[line] = millis() + ledScrollSpeed[line];
+        lcd.setCursor(0, line);
+        lcd.print(text);
+    }
 }
 
 // Funktion zum auslesen des Keypads
-char keypad_readout() {
-
+char keypadReadout() {
     static int key_number = 0;
     char key = keypad.getKey();
     unsigned long currentTime = millis();
 
-    if (key) { // Überprüfe, ob eine Taste gedrückt wurde
+    if (key) {  // Überprüfe, ob eine Taste gedrückt wurde
 
-        if (isDigit(key)) { // Überprüfe, ob die gedrückte Taste eine Zahl ist
+        if (isDigit(key)) {  // Überprüfe, ob die gedrückte Taste eine Zahl ist
 
-            if (firstKey == '\0') { // Überprüfe, ob die erste Ziffer bereits gedrückt wurde
+            if (firstKey == '\0') {  // Überprüfe, ob die erste Ziffer bereits gedrückt wurde
                 // Speichere die erste gedrückte Zahl
                 firstKey = key;
-                lastKeyPressTime = currentTime; // Setze die Zeit für die erste Ziffer
+                lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
                 // Text für LCD Display
-                strcpy(TextZeile[0], "Suche Schlüssel:   ");        //Text für Zeile 1 des LCD Displays
-                strcpy(TextZeile[1], firstKey + "                  ");                     //Text für Zeile 2 des LCD Displays
-                strcpy(TextZeile[2], "                     ");      //Text für Zeile 3 des LCD Displays
-                strcpy(TextZeile[3], "                     ");      //Text für Zeile 4 des LCD Displays
+                strcpy(textRow[0], "Suche Schlüssel:   ");
+                strcpy(textRow[1], firstKey + "                  ");
+                strcpy(textRow[2], "                     ");
+                strcpy(textRow[3], "                     ");
 
-             } else {   // Zwei Zahlen nacheinander wurden gedrückt
-                
-                key_number = firstKey * 10 + key; 
+            } else {  // Zwei Zahlen nacheinander wurden gedrückt
+
+                key_number = firstKey * 10 + key;
 
                 // Text für LCD Display
-                strcpy(TextZeile[0], "Suche Schlüssel:   ");        //Text für Zeile 1 des LCD Displays
-                strcpy(TextZeile[1], key_number + "                   ");                     //Text für Zeile 2 des LCD Displays
-                strcpy(TextZeile[2], "                     ");      //Text für Zeile 3 des LCD Displays
-                strcpy(TextZeile[3], "                     ");      //Text für Zeile 4 des LCD Displays
-                
-                firstKey = '\0'; // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
+                strcpy(textRow[0], "Suche Schlüssel:   ");
+                strcpy(textRow[1], key_number + "                   ");
+                strcpy(textRow[2], "                     ");
+                strcpy(textRow[3], "                     ");
 
+                firstKey = '\0';  // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
             }
         }
     }
 
     // Überprüfe, ob die Zeitgrenze überschritten wurde. Wenn ja, setze die erste Ziffer zurück
     if (firstKey != '\0' && currentTime - lastKeyPressTime >= resetTimeout) {
-        firstKey = '\0'; // Setze die erste Ziffer zurück
+        firstKey = '\0';  // Setze die erste Ziffer zurück
     }
 
-    return key_number; // Gib die Zahlenkombination zurück
-
+    return key_number;  // Gib die Zahlenkombination zurück
 }
 
 // RFID Funktionen
@@ -390,178 +552,4 @@ long getRfidId() {
         code = ((code + rfidReader.uid.uidByte[i]) * 10);
     }
     return code;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-// Zustandsfunktionen:
-void inactive() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 255;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = true;
-
-    open_door_lock();                   // Türschloss öffnen
-
-}
-
-void ready() {
-    
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 255;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = false;
-
-    close_door_lock();                                  // Türschloss schließen
-    
-    key_number_var = keypad_readout();                  // Auslesen des Keypads
-    if(key_number_var != 0){                            // Wenn eine Zahlenkombination eingegeben wurde wechsle in guest_key_search
-        state = GUEST_KEY_SEARCH;
-    }
-
-    // Überprüfe ob ein RFID-Tag präsentiert wird
-   if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if(isRfidKey(rfidId)){
-                
-        } else if(isRfidEmployee(rfidId)) {
-
-        } else {
-        // prinz a warning for a wrong RFID device
-        }
-              
-    }
-    //if Status last status
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Scannen Sie Ihren   "); //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "RFID-Chip oder      "); //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "einen               "); //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "Schlüsselanhänger.");   //Text für Zeile 4 des LCD Displays
-
-
-}
-
-void logged_in() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 0;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 255;
-    should_StatusLED_blink = false;
-
-    open_door_lock();                   // Türschloss öffnen
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Schlüssel entnehmen");    //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "oder zur Rückgabe  ");    //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "Schlüsselband      ");    //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "einscannen.         ");   //Text für Zeile 4 des LCD Displays
-    
-}
-   
-void logged_in_key_return() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 0;
-    StatusLED_green_var = 255;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = false;
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Stecken Sie         ");   //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "den gescannten      ");   //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "Schlüssel zurück. ");     //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "                    ");   //Text für Zeile 4 des LCD Displays
-
-}
-            
-void guest_key_return() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 0;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 255;
-    should_StatusLED_blink = true;
-
-    open_door_lock();                   // Türschloss öffnen
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Stecken Sie         ");   //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "den gescannten      ");   //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "Schlüssel zurück. ");     //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "                    ");   //Text für Zeile 4 des LCD Displays
-
-}
-            
-void guest_waiting() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 0;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 255;
-    should_StatusLED_blink = false;
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Vorgang             ");   //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "abgeschlossen. Neuen");   //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "Schlüssel eincannen");    //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "o. Tür schließen. ");     //Text für Zeile 4 des LCD Displays
-
-}
-
-void wrong_key_exchange() {
- 
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 255;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = true;
-
-    open_door_lock();                   // Türschloss öffnen
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Tauschen Sie den    ");    //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "Schlüssel der roten");     //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "LED mir dem einge-  ");    //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "scannten Schlüssel.");     //Text für Zeile 4 des LCD Displays
-
-}
-
-void waiting_for_wrong_key() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 255;
-    StatusLED_green_var = 255;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = true;
-
-    // Text für LCD Display
-    strcpy(TextZeile[0], "Tauschen Sie den    ");    //Text für Zeile 1 des LCD Displays
-    strcpy(TextZeile[1], "Schlüssel der roten");     //Text für Zeile 2 des LCD Displays
-    strcpy(TextZeile[2], "LED mir dem einge-  ");    //Text für Zeile 3 des LCD Displays
-    strcpy(TextZeile[3], "scannten Schlüssel.");     //Text für Zeile 4 des LCD Displays    
-
-}
-
-void logged_in_key_search() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 0;
-    StatusLED_green_var = 255;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = false;
-
-}
-
-void guest_key_search() {
-
-    //Farbeinstellung der Status-LED
-    StatusLED_red_var = 255;
-    StatusLED_green_var = 0;
-    StatusLED_blue_var = 0;
-    should_StatusLED_blink = false;
-
 }
