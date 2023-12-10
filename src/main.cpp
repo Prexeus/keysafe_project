@@ -3,7 +3,7 @@
 #include <MFRC522.h>
 #include <SPI.h>
 #include <LiquidCrystal_I2C.h> // Bibliothek für I2C Display
-#include <Keypad.h>
+#include <Keypad.h> // Bibliothek für Keypad
 
 // Anzahl der im LCD Display vorhandenen Zeichen pro Zeile (verwendet wird ein 20x4 Zeichen I2C Display)
 const byte LEDLINE = 20;
@@ -172,7 +172,7 @@ void loop() {
 
     // Wenn die Bedingung erfüllt ist, führe die Status-LED Blink-Funktion aus, sonst setzte permanent die Farbe der Status-LED
     if (should_StatusLED_blink) {
-        blinkStatusLED();
+        blink_status_led();
     }
     else {
         setcolor_status_led_on();
@@ -250,7 +250,7 @@ void close_door_lock() {
 // Funktion zum überprüfen ob Tür geschlossen ist
 void check_door_lock_sensor() {
 
-    if (digitalRead(door_lock_sensor) == HIGH && state != wrong_key_exchange) { // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrong_key_exchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
+    if (digitalRead(door_lock_sensor) == HIGH && state != WRONG_KEY_EXCHANGE) { // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrong_key_exchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
         delay(3000);                    // Warte 3 Sekunden bis das Türschloss sich schließt
         close_door_lock();              // Türschloss schließen
         state = READY;
@@ -300,14 +300,11 @@ void task_text(char *text, byte line)
 
     for (i=0;i<LEDLINE;i++)
       currenttext[i]=charAt(text,positionCounter[line]+i);
-    #include <LiquidCrystal.h> // Include the LCD library
-
-    LiquidCrystal lcd(12, 11, 5, 4, 3, 2); // Declare the 'lcd' object
-
     currenttext[LEDLINE]=0;    
 
     lcd.setCursor(0,line);
     lcd.print(currenttext);
+
     if (ledScrollDir[line])
     {
         positionCounter[line]++;
@@ -422,7 +419,7 @@ void ready() {
     
     key_number_var = keypad_readout();                  // Auslesen des Keypads
     if(key_number_var != 0){                            // Wenn eine Zahlenkombination eingegeben wurde wechsle in guest_key_search
-        state = guest_key_search;
+        state = GUEST_KEY_SEARCH;
     }
 
     // Überprüfe ob ein RFID-Tag präsentiert wird
@@ -437,12 +434,13 @@ void ready() {
         }
               
     }
-
+    //if Status last status
     // Text für LCD Display
     strcpy(TextZeile[0], "Scannen Sie Ihren   "); //Text für Zeile 1 des LCD Displays
     strcpy(TextZeile[1], "RFID-Chip oder      "); //Text für Zeile 2 des LCD Displays
     strcpy(TextZeile[2], "einen               "); //Text für Zeile 3 des LCD Displays
     strcpy(TextZeile[3], "Schlüsselanhänger.");   //Text für Zeile 4 des LCD Displays
+
 
 }
 
