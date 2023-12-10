@@ -2,7 +2,8 @@
 #include <Arduino.h>
 #include <MFRC522.h>
 #include <SPI.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_I2C.h> // Bibliothek für I2C Display
+#include <Keypad.h>
 
 // Anzahl der im LCD Display vorhandenen Zeichen pro Zeile (verwendet wird ein 20x4 Zeichen I2C Display)
 const byte LEDLINE = 20;
@@ -34,6 +35,26 @@ MFRC522 rfidReader(SS_PIN, RST_PIN);
 #define StatusLED_red 9                     // Pin für den roten Kanal
 #define StatusLED_green 10                  // Pin für den grünen Kanal
 #define StatusLED_blue 11                   // Pin für den blauen Kanal
+
+// Pin-Definitionen für das Keypad
+    const byte ROW_NUM    = 4; // vier Reihen
+    const byte COLUMN_NUM = 3; // drei Spalten
+
+    char keys[ROW_NUM][COLUMN_NUM] = {
+    {'1','2','3'},
+    {'4','5','6'},
+    {'7','8','9'},
+    {'*','0','#'}
+    };
+
+    byte pin_rows[ROW_NUM] = {9, 8, 7, 6};    // verbinde die Reihen mit diesen Pins
+    byte pin_column[COLUMN_NUM] = {5, 4, 3}; // verbinde die Spalten mit diesen Pins
+
+    Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
+
+    char firstKey = '\0';
+    unsigned long lastKeyPressTime = 0;
+    const unsigned long resetTimeout = 5000; // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +90,8 @@ bool should_StatusLED_blink = false;        // Varibale zur Steuerung des Blinke
 int StatusLED_red_var = 255;                // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)        
 int StatusLED_green_var = 255;              // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)       
 int StatusLED_blue_var = 255;               // Standartfarbe der Status-LED festlegen (Zahlenwert zwischen 0-255 möglich)       
+
+int key_number_var = 0;                     // Globale Variable für die Zahlenkombination des Keypads
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Initialisiere Code:
@@ -114,6 +137,7 @@ void setup() {
 void loop() {
     switch (state) {
         case INACTIVE:
+            inactive();
             break;
         case READY:
             ready();
@@ -303,6 +327,52 @@ void task_text(char *text, byte line)
   }
 }
 
+// Funktion zum auslesen des Keypads
+char keypad_readout() {
+
+    static int key_number = 0;
+    char key = keypad.getKey();
+    unsigned long currentTime = millis();
+
+    if (key) { // Überprüfe, ob eine Taste gedrückt wurde
+
+        if (isDigit(key)) { // Überprüfe, ob die gedrückte Taste eine Zahl ist
+
+            if (firstKey == '\0') { // Überprüfe, ob die erste Ziffer bereits gedrückt wurde
+                // Speichere die erste gedrückte Zahl
+                firstKey = key;
+                lastKeyPressTime = currentTime; // Setze die Zeit für die erste Ziffer
+
+                // Text für LCD Display
+                strcpy(TextZeile[0], "Suche Schlüssel:   ");        //Text für Zeile 1 des LCD Displays
+                strcpy(TextZeile[1], firstKey + "                  ");                     //Text für Zeile 2 des LCD Displays
+                strcpy(TextZeile[2], "                     ");      //Text für Zeile 3 des LCD Displays
+                strcpy(TextZeile[3], "                     ");      //Text für Zeile 4 des LCD Displays
+
+             } else {   // Zwei Zahlen nacheinander wurden gedrückt
+                
+                key_number = firstKey * 10 + key; 
+
+                // Text für LCD Display
+                strcpy(TextZeile[0], "Suche Schlüssel:   ");        //Text für Zeile 1 des LCD Displays
+                strcpy(TextZeile[1], key_number + "                   ");                     //Text für Zeile 2 des LCD Displays
+                strcpy(TextZeile[2], "                     ");      //Text für Zeile 3 des LCD Displays
+                strcpy(TextZeile[3], "                     ");      //Text für Zeile 4 des LCD Displays
+                
+                firstKey = '\0'; // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
+
+            }
+        }
+    }
+
+    // Überprüfe, ob die Zeitgrenze überschritten wurde. Wenn ja, setze die erste Ziffer zurück
+    if (firstKey != '\0' && currentTime - lastKeyPressTime >= resetTimeout) {
+        firstKey = '\0'; // Setze die erste Ziffer zurück
+    }
+
+    return key_number; // Gib die Zahlenkombination zurück
+
+}
 
 // RFID Funktionen
 boolean isRfidPresented() {
@@ -336,6 +406,8 @@ void inactive() {
     StatusLED_blue_var = 0;
     should_StatusLED_blink = true;
 
+    open_door_lock();                   // Türschloss öffnen
+
 }
 
 void ready() {
@@ -346,7 +418,12 @@ void ready() {
     StatusLED_blue_var = 0;
     should_StatusLED_blink = false;
 
-    close_door_lock();                  // Türschloss schließen
+    close_door_lock();                                  // Türschloss schließen
+    
+    key_number_var = keypad_readout();                  // Auslesen des Keypads
+    if(key_number_var != 0){                            // Wenn eine Zahlenkombination eingegeben wurde wechsle in guest_key_search
+        state = guest_key_search;
+    }
 
     // Überprüfe ob ein RFID-Tag präsentiert wird
    if (isRfidPresented()) {
