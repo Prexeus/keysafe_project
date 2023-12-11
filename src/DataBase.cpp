@@ -6,6 +6,15 @@
 
 const int maxKeyCount = 50;
 
+struct KeyData {
+    unsigned int keyNumber;
+};
+
+struct EmployeeData {
+    unsigned int keyNumber;
+    unsigned int keyNumber2;
+};
+
 SimpleQueue<const char*, maxKeyCount> getRowQueue(char string[]) {
     SimpleQueue<const char*, maxKeyCount> resultQueue;
     const char* rowString = strtok(string, "\n");
@@ -17,18 +26,8 @@ SimpleQueue<const char*, maxKeyCount> getRowQueue(char string[]) {
 }
 
 SimpleMap<unsigned int, KeyData> addToKeyMap(const char* rowString) {
-  const char* cellString = strtok((char*)rowString, ";");
-  SimpleMap<unsigned int, KeyData> map;
-  while (cellString != NULL) {
-    Serial.println(cellString);
-    cellString = strtok(NULL, ";");
-  }
-  return map;
-}
-
-SimpleMap<unsigned int, EmployeeData> addToEmplyeeMap(const char* rowString) {
     const char* cellString = strtok((char*)rowString, ";");
-    SimpleMap<unsigned int, EmployeeData> map;
+    SimpleMap<unsigned int, KeyData> map;
     while (cellString != NULL) {
         Serial.println(cellString);
         cellString = strtok(NULL, ";");
@@ -36,13 +35,16 @@ SimpleMap<unsigned int, EmployeeData> addToEmplyeeMap(const char* rowString) {
     return map;
 }
 
-struct KeyData {
-    unsigned int keyNumber;
-};
+SimpleMap<unsigned int, KeyData> addToEmplyeeMap(const char* rowString) {
+    const char* cellString = strtok((char*)rowString, ";");
+    SimpleMap<unsigned int, EmployeeData> map;
+    while (cellString != NULL) {
+        Serial.println(cellString);
+        cellString = strtok(NULL, ";");
+    }
+//    return map;
+}
 
-struct EmployeeData {
-    unsigned int keyNumber;
-};
 
 void setup() {
     Serial.begin(9600);
