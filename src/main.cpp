@@ -9,8 +9,10 @@
 #include <SPI.h>                // Library for SPI Communication (for RFID Reader)
 #include <Wire.h>               // opt
 #include <stdio.h>              // opt
-#include <string.h>             // opt
 #include <stream.h>             // opt
+#include <string.h>             // opt
+
+//#include "State.cpp"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Pin-declarations & related variables:
@@ -72,8 +74,7 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // global variables:
-State state = INACTIVE;
-State previousState = STARTING;
+State state = STARTING;
 
 unsigned long currentStateEnteredTime;
 
@@ -105,10 +106,6 @@ typedef enum State {
 void setup() {
     Serial.begin(9600);
 
-    // RFID Reader initialisation
-    SPI.begin();
-    rfidReader.PCD_Init();
-
     // LCD Display initialisation
     lcd.init();
     lcd.backlight();
@@ -123,6 +120,10 @@ void setup() {
     taskText(textRow[2], 2);
     taskText(textRow[3], 3);
 
+    // RFID Reader initialisation
+    SPI.begin();
+    rfidReader.PCD_Init();
+
     // OUTPUT-Pins
     pinMode(statusLedRed, OUTPUT);
     pinMode(statusLedGreen, OUTPUT);
@@ -133,7 +134,7 @@ void setup() {
     // INPUT-Pins
     pinMode(doorLockSensor, INPUT);
 
-    currentStateEnteredTime = millis();
+    changeStateTo(INACTIVE);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -202,25 +203,25 @@ void changeStateTo(State newState) {
             initiateLoggedInKeyReturn();
             break;
         case GUEST_KEY_RETURN:
-            initiateLoggedInKeyReturn();  // TODO
+            initiateGuestKeyReturn();
             break;
         case GUEST_WAITING:
-            initiateLoggedInKeyReturn();  // TODO
+            initiateGuestWaiting();
             break;
         case WRONG_KEY_EXCHANGE:
-            initiateLoggedInKeyReturn();  //...
+            initiateWrongKeyExchange();
             break;
         case WAITING_FOR_WRONG_KEY:
-            initiateLoggedInKeyReturn();  //...
+            initiateWaitingForWrongKey();
             break;
         case LOGGED_IN_KEY_SEARCH:
-            initiateLoggedInKeyReturn();  //...
+            initiateLoggedInKeySearch();
             break;
         case GUEST_KEY_SEARCH:
-            initiateLoggedInKeyReturn();  //...
+            initiateGuestKeySearch();
             break;
         default:
-            break;
+            break;  
     }
     state = newState;
 }
@@ -288,8 +289,6 @@ void initiateLoggedInKeyReturn() {
     strcpy(textRow[1], "den gescannten      ");
     strcpy(textRow[2], "Schlüssel zurück.   ");
     strcpy(textRow[3], "                    ");
-
-    previousState = LOGGED_IN_KEY_RETURN;
 }
 void loggedInKeyReturn() {
     // state repetition:
@@ -298,62 +297,85 @@ void loggedInKeyReturn() {
     // state changeconditions:
 }
 
+void initiateGuestKeyReturn() {
+    openDoorLock();
+
+    strcpy(textRow[0], "Stecken Sie         ");
+    strcpy(textRow[1], "den gescannten      ");
+    strcpy(textRow[2], "Schlüssel zurück.   ");
+    strcpy(textRow[3], "                    ");
+}
 void guestKeyReturn() {
-    // Farbeinstellung der Status-LED
+    // state repetition:
     blinkStatusLed(BLUE);
 
-    openDoorLock();  // Türschloss öffnen
-
-    // Text für LCD Display
+    // state changeconditions:
     strcpy(textRow[0], "Stecken Sie         ");
     strcpy(textRow[1], "den gescannten      ");
     strcpy(textRow[2], "Schlüssel zurück.   ");
     strcpy(textRow[3], "                    ");
 }
 
-void guestWaiting() {
-    // Farbeinstellung der Status-LED
+void initiateGuestWaiting() {
     setStatusLed(BLUE);
 
-    // Text für LCD Display
     strcpy(textRow[0], "Vorgang             ");
     strcpy(textRow[1], "abgeschlossen. Neuen");
     strcpy(textRow[2], "Schlüssel einscannen");
     strcpy(textRow[3], "oder Türe schließen.");
 }
+void guestWaiting() {
+    // state repetition:
 
-void wrongKeyExchange() {
-    // Farbeinstellung der Status-LED
-    blinkStatusLed(RED);
+    // state changeconditions:
+    if (isDoorLocked()) {
+        changeStateTo(READY);
+    }
+}
 
-    openDoorLock();  // Türschloss öffnen
+void initiateWrongKeyExchange() {
+    setStatusLed(RED);
+    openDoorLock();
 
-    // Text für LCD Display
     strcpy(textRow[0], "Tauschen Sie den    ");
     strcpy(textRow[1], "Schlüssel der roten");
     strcpy(textRow[2], "LED mir dem einge-  ");
     strcpy(textRow[3], "scannten Schlüssel.");
 }
-
-void waitingForWrongKey() {
-    // Farbeinstellung der Status-LED
-    blinkStatusLed(YELLOW);
-
-    // Text für LCD Display
-    strcpy(textRow[0], "Tauschen Sie den    ");
-    strcpy(textRow[1], "Schlüssel der roten ");
-    strcpy(textRow[2], "LED mir dem einge-  ");
-    strcpy(textRow[3], "scannten Schlüssel. ");
+void wrongKeyExchange() {
+    // state repetition:
+    // state changeconditions:
 }
 
-void loggedInKeySearch() {
-    // Farbeinstellung der Status-LED
+void initiateWaitingForWrongKey() {
+    setStatusLed(YELLOW);
+    openDoorLock();
+
+    strcpy(textRow[0], "Tauschen Sie den    ");  // TODO: Text anpassen
+    strcpy(textRow[1], "Schlüssel der roten");
+    strcpy(textRow[2], "LED mir dem einge-  ");
+    strcpy(textRow[3], "scannten Schlüssel.");
+}
+void waitingForWrongKey() {
+    // state repetition:
+    blinkStatusLed(YELLOW);
+    // state changeconditions:
+}
+
+void initiateLoggedInKeySearch() {
     setStatusLed(GREEN);
 }
+void loggedInKeySearch() {
+    // state repetition:
+    // state changeconditions:
+}
 
-void guestKeySearch() {
-    // Farbeinstellung der Status-LED
+void initiateGuestKeySearch() {
     setStatusLed(RED);
+}
+void guestKeySearch() {
+    // state repetition:
+    // state changeconditions:
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
