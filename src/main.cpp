@@ -56,7 +56,7 @@ LedColor statusLedColor = OFF;
 const byte rowAmount = 4;     // vier Reihen
 const byte columnAmount = 3;  // drei Spalten
 
-char keys[rowAmount][columnAmount] = {
+const char keys[rowAmount][columnAmount] = {
     {'1', '2', '3'},
     {'4', '5', '6'},
     {'7', '8', '9'},

@@ -1,5 +1,8 @@
 //geladene Bibliotheken
 #include <LiquidCrystal_I2C.h>
+#include <Arduino.h>
+
+
 
 
 //Festlegen der Pinbelegung am Arduino 
