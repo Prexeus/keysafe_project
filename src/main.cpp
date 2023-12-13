@@ -236,7 +236,7 @@ void inactive() {
 
     // state changeconditions:
     if (isDoorLocked()) {
-        state = READY;
+        state = READY;                  //Soll das So?
         changeStateTo(READY);
     }
 }
@@ -255,6 +255,7 @@ void ready() {
 
     // state changeconditions:
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
+
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
@@ -351,10 +352,10 @@ void initiateWaitingForWrongKey() {
     setStatusLed(YELLOW);
     openDoorLock();
 
-    strcpy(textRow[0], "Tauschen Sie den    ");  // TODO: Text anpassen
-    strcpy(textRow[1], "Schlüssel der roten");
-    strcpy(textRow[2], "LED mir dem einge-  ");
-    strcpy(textRow[3], "scannten Schlüssel.");
+    strcpy(textRow[0], "Scanne den eben     ");  // TODO: Text anpassen
+    strcpy(textRow[1], "entnommenen Schlüs-");
+    strcpy(textRow[2], "sel und stecke ihn  ");
+    strcpy(textRow[3], "zurück.            ");
 }
 void waitingForWrongKey() {
     // state repetition:
@@ -513,7 +514,7 @@ void taskText(char *text, byte line)
 
 // Funktion zum auslesen des Keypads
 char keypadReadout() {
-    static int key_number = 0;
+    int keyNumber = 0;
     char key = keypad.getKey();
     unsigned long currentTime = millis();
 
@@ -527,20 +528,20 @@ char keypadReadout() {
                 lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
                 // Text für LCD Display
-                strcpy(textRow[0], "Suche Schlüssel:   ");
-                strcpy(textRow[1], firstKey + "                  ");
-                strcpy(textRow[2], "                     ");
-                strcpy(textRow[3], "                     ");
+                strcpy(textRow[0], "Suche Schlüssel:");
+                sprintf(textRow[1], "%c", firstKey);
+                strcpy(textRow[2], "");
+                strcpy(textRow[3], "");
 
             } else {  // Zwei Zahlen nacheinander wurden gedrückt
 
-                key_number = firstKey * 10 + key;
+                keyNumber = (firstKey - '0') * 10 + (key - '0');
 
                 // Text für LCD Display
-                strcpy(textRow[0], "Suche Schlüssel:   ");
-                strcpy(textRow[1], key_number + "                   ");
-                strcpy(textRow[2], "                     ");
-                strcpy(textRow[3], "                     ");
+                strcpy(textRow[0], "Suche Schluessel:");
+                sprintf(textRow[1], "%d", keyNumber);
+                strcpy(textRow[2], "");
+                strcpy(textRow[3], "");
 
                 firstKey = '\0';  // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
             }
@@ -550,9 +551,10 @@ char keypadReadout() {
     // Überprüfe, ob die Zeitgrenze überschritten wurde. Wenn ja, setze die erste Ziffer zurück
     if (firstKey != '\0' && currentTime - lastKeyPressTime >= resetTimeout) {
         firstKey = '\0';  // Setze die erste Ziffer zurück
+        changeStateTo(state); // Initialisiere den aktuellen State neu um das Display auf den Ausgangszustand zurückzusetzen
     }
 
-    return key_number;  // Gib die Zahlenkombination zurück
+    return keyNumber;  // Gib die Zahlenkombination zurück
 }
 
 // RFID Funktionen
