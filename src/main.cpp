@@ -110,10 +110,10 @@ void setup() {
     lcd.init();
     lcd.backlight();
     // Willkommenstext anzeigen
-    strcpy(textRow[0], "   IFU Stuttgart    ");
-    strcpy(textRow[1], "  Schlüsselausgabe  ");
-    strcpy(textRow[2], "  2024 Version 1.0  ");
-    strcpy(textRow[3], " ->Tür schließen!<- ");
+    strcpy(textRow[0], "IFU Stuttgart");
+    strcpy(textRow[1], "Schlüsselausgabe");
+    strcpy(textRow[2], "2024 Version 1.0");
+    strcpy(textRow[3], "Tuer schliessen!");
     // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays
     taskText(textRow[0], 0);
     taskText(textRow[1], 1);
@@ -229,26 +229,36 @@ void changeStateTo(State newState) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-functions:
 void initiateInactive() {
+
+    // TODO: Alle SchlüsselLEDs ausschalten
+    openDoorLock(); // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
+
+    strcpy(textRow[0], "Bitte Türe");
+    strcpy(textRow[1], "schliessen!");
+    strcpy(textRow[2], "");
+    strcpy(textRow[3], "");
 }
 void inactive() {
     // state repetition:
-    blinkStatusLed(RED);
+    blinkStatusLed(RED); //FRAGE: sollte das nicht in initiateInactive() stehen?
 
+    //FRAGE: Das folgende ist eigentlich unnötig oder? Es wird ja ständig im Loop geprüft ob die Tür geschlossen ist und wenn ja wird in ready gewechselt. 
     // state changeconditions:
-    if (isDoorLocked()) {
-        state = READY;                  //Soll das So?
-        changeStateTo(READY);
-    }
+    //if (isDoorLocked()) {               // Wechsle zu State "ready" wenn die Tür geschlossen ist
+    //    changeStateTo(READY);
+    //}
 }
 
 void initiateReady() {
     setStatusLed(RED);
-    closeDoorLock();  // Türschloss schließen
+    //closeDoorLock();  FRAGE: Muss an sich nicht aufgerufen werden, da man immer über checkDoorLockSensor() in den Zustand "ready" wechselt und dort das Türschloss geschlossen wird
+    // TODO: Alle SchlüsselLEDs ausschalten
+    // TODO: Alle Schlüsselbolzen schließen
 
-    strcpy(textRow[0], "Scannen Sie Ihren   ");
-    strcpy(textRow[1], "RFID-Chip oder      ");
-    strcpy(textRow[2], "einen               ");
-    strcpy(textRow[3], "Schlüsselanhänger.  ");
+    strcpy(textRow[0], "Scannen Sie Ihren");
+    strcpy(textRow[1], "RFID-Chip oder");
+    strcpy(textRow[2], "einen");
+    strcpy(textRow[3], "Schlüsselanhänger.");
 }
 void ready() {
     // state repetition:
@@ -259,14 +269,15 @@ void ready() {
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
-            //
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            changeStateTo(GUEST_KEY_RETURN);       // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else if (isRfidEmployee(rfidId)) {
-            //
+            changeStateTo(LOGGED_IN);               // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
         } else {
             // print a warning for a wrong RFID device
         }
-    } else if (keyNumberVar != 0) {  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
-        changeStateTo(GUEST_KEY_SEARCH);
+    } else if (keyNumberVar != 0) { 
+        changeStateTo(GUEST_KEY_SEARCH); // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
 
@@ -274,18 +285,38 @@ void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
 
-    strcpy(textRow[0], "Schlüssel entnehmen ");
-    strcpy(textRow[1], "oder zur Rückgabe   ");
-    strcpy(textRow[2], "Schlüsselband       ");
-    strcpy(textRow[3], "einscannen.         ");
+    strcpy(textRow[0], "Schluessel entnehmen");
+    strcpy(textRow[1], "oder zur Rueckgabe");
+    strcpy(textRow[2], "Schluesselband");
+    strcpy(textRow[3], "einscannen.");
 }
 void loggedIn() {
     // state repetition:
 
+    // TODO: SchlüsselLEDs der Schlüssel aktualisieren nach Berechtigung oder fehlen des Schlüssels
+    // TODO: Schlüsselbolzen der Schlüssel aktualisieren nach Berechtigung oder fehlen des Schlüssels
+
     // state changeconditions:
+    keyNumberVar = keypadReadout();  // Auslesen des Keypads       
+
+    if (isRfidPresented()) {
+    long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) { 
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            changeStateTo(LOGGED_IN_KEY_RETURN); // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn"
+        } else {
+            // TODO?: print a warning for a wrong RFID device
+        }
+    } else if (keyNumberVar != 0) { 
+        changeStateTo(LOGGED_IN_KEY_SEARCH); // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
+    }
 }
 
 void initiateLoggedInKeyReturn() {
+
+    // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
+    // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
+
     strcpy(textRow[0], "Stecken Sie         ");
     strcpy(textRow[1], "den gescannten      ");
     strcpy(textRow[2], "Schlüssel zurück.   ");
@@ -296,93 +327,195 @@ void loggedInKeyReturn() {
     blinkStatusLed(GREEN);
 
     // state changeconditions:
+
+    // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(loggedIn) und SD aktualisieren
 }
 
 void initiateGuestKeyReturn() {
     openDoorLock();
 
-    strcpy(textRow[0], "Stecken Sie         ");
-    strcpy(textRow[1], "den gescannten      ");
-    strcpy(textRow[2], "Schlüssel zurück.   ");
-    strcpy(textRow[3], "                    ");
+    // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
+    // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
+
+    strcpy(textRow[0], "Stecken Sie");
+    strcpy(textRow[1], "den gescannten");
+    strcpy(textRow[2], "Schlüssel zurück.");
+    strcpy(textRow[3], "");
 }
 void guestKeyReturn() {
     // state repetition:
     blinkStatusLed(BLUE);
 
     // state changeconditions:
-    strcpy(textRow[0], "Stecken Sie         ");
-    strcpy(textRow[1], "den gescannten      ");
-    strcpy(textRow[2], "Schlüssel zurück.   ");
-    strcpy(textRow[3], "                    ");
+
+    // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(guestWaiting) und SD aktualisieren
+
 }
 
 void initiateGuestWaiting() {
     setStatusLed(BLUE);
 
-    strcpy(textRow[0], "Vorgang             ");
+    // TODO: Alle SchlüsselLEDs ausschalten
+    // TODO: Alle Schlüsselbolzen schließen
+
+    strcpy(textRow[0], "Vorgang");
     strcpy(textRow[1], "abgeschlossen. Neuen");
-    strcpy(textRow[2], "Schlüssel einscannen");
-    strcpy(textRow[3], "oder Türe schließen.");
+    strcpy(textRow[2], "Schluessel scannen");
+    strcpy(textRow[3], "o. Tuere schliessen.");
 }
 void guestWaiting() {
     // state repetition:
 
     // state changeconditions:
-    if (isDoorLocked()) {
-        changeStateTo(READY);
+    
+    //if (isDoorLocked()) {    // Gleiches Problem wie in "inactive" --> FRAGE: Ist das nicht redundant zu checkDoorLockSensor()? Wie oben beschrieben
+    //    changeStateTo(READY);
+    //}
+
+    if (isRfidPresented()) {
+    long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) { 
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            changeStateTo(GUEST_KEY_RETURN); // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+        } else {
+            // TODO?: print a warning for a wrong RFID device
+        }
     }
+
 }
 
 void initiateWrongKeyExchange() {
-    setStatusLed(RED);
+   
     openDoorLock();
 
-    strcpy(textRow[0], "Tauschen Sie den    ");
-    strcpy(textRow[1], "Schlüssel der roten");
-    strcpy(textRow[2], "LED mir dem einge-  ");
-    strcpy(textRow[3], "scannten Schlüssel.");
+    // TODO: SchlüsselLED des falschen Schlüssels einschalten alle anderen ausschalten
+    // TODO: Schlüsselbolzen des falschen Schlüssels öffne alle anderen schließen
+
+    strcpy(textRow[0], "Tauschen Sie den");
+    strcpy(textRow[1], "Schluessel der roten");
+    strcpy(textRow[2], "LED mir dem einge-");
+    strcpy(textRow[3], "scannten Schluessel.");
 }
 void wrongKeyExchange() {
     // state repetition:
+        blinkStatusLed(RED);
+
     // state changeconditions:
+
+    // TODO: IF Abfrage ob der Sonsor des falschen Schlüssels LOW ist und dann nächste Zeile überprüfen
+    // TODO: If Abfrage ob der Sensor des falschen Schlüssels HIGH ist, wenn ja changeStateTo(waitingForWrongKey) und SD aktualisieren
 }
 
 void initiateWaitingForWrongKey() {
-    setStatusLed(YELLOW);
-    openDoorLock();
 
-    strcpy(textRow[0], "Scanne den eben     ");  // TODO: Text anpassen
-    strcpy(textRow[1], "entnommenen Schlüs-");
-    strcpy(textRow[2], "sel und stecke ihn  ");
-    strcpy(textRow[3], "zurück.            ");
+    strcpy(textRow[0], "Scanne den eben");
+    strcpy(textRow[1], "entnommenen");
+    strcpy(textRow[2], "Schluessel und gebe");
+    strcpy(textRow[3], "ihn zurück.");
 }
-void waitingForWrongKey() {
+void waitingForWrongKey() {         // FRAGE: Zustand kann umgangen werden, in dem der Schrank nach Beendigung des Zustands: "wrongKeyExchange" geschlossen wird. Ist das so gewollt?
+
     // state repetition:
     blinkStatusLed(YELLOW);
+
     // state changeconditions:
+
+    if (isRfidPresented()) {
+    long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) { 
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            // TODO: else: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
+            // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffnen, alle anderen schließen
+        } else {
+            // TODO?: print a warning for a wrong RFID device
+        }
+    }
+    //else if () {  // TODO: Warte bis Schlüsselsensor HIGH ist, dann Zeige Meldung:
+            strcpy(textRow[0], "Vorgang");
+            strcpy(textRow[1], "abgeschlossen.");
+            strcpy(textRow[2], "Schliesse Tuer.");
+            strcpy(textRow[3], "");
+    //}
+            
 }
 
 void initiateLoggedInKeySearch() {
+
     setStatusLed(GREEN);
+
+    // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
+
+    sprintf(textRow[0], "Schluesselnummer xx");
+    strcpy(textRow[1], "liegt bei");
+    strcpy(textRow[2], "Mitarbeiter");
+    sprintf(textRow[3], "yy");
+
 }
 void loggedInKeySearch() {
     // state repetition:
+    keyNumberVar = 0; // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+    static const long interval = 5000;        // Intervall in Millisekunden (hier 5 Sekunden)
+    unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
+    // TODO: Variable einführen die den zuletzt angemeldeten mitarbeiterID speichert um diese wieder aufrufen zu können beim wechsel.
+
     // state changeconditions:
-}
+
+    if (currentMillis - currentStateEnteredTime >= interval) {
+        changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
+    }
+    else if (isRfidPresented()) {
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            changeStateTo(LOGGED_IN_KEY_RETURN);    // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn" mit der information welcher Mitarbeiter zuletzt angemeldet war
+        } else {
+        // print a warning for a wrong RFID device
+        }
+    }
+
+}   
 
 void initiateGuestKeySearch() {
     setStatusLed(RED);
+
+    // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
+
+    sprintf(textRow[0], "Schluesselnummer xx");
+    strcpy(textRow[1], "liegt bei");
+    strcpy(textRow[2], "Mitarbeiter");
+    sprintf(textRow[3], "yy");
+
 }
 void guestKeySearch() {
     // state repetition:
+    keyNumberVar = 0; // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+    static const long interval = 5000;        // Intervall in Millisekunden (hier 5 Sekunden)
+    unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
+
+
     // state changeconditions:
+
+    if (currentMillis - currentStateEnteredTime >= interval) {
+        changeStateTo(READY);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "READY"
+
+    } else if (isRfidPresented()) {
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
+            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
+            changeStateTo(GUEST_KEY_RETURN);       // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+        } else if (isRfidEmployee(rfidId)) {
+            changeStateTo(LOGGED_IN);               // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
+        } else {
+            // print a warning for a wrong RFID device
+        }
+    }
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // functions:
 
-boolean isDoorLocked() {
+boolean isDoorLocked() {                            // FRAGE: Ist das nicht redundant zu checkDoorLockSensor()? Wie oben beschrieben
     return digitalRead(doorLockSensor) == HIGH;
 }
 
@@ -446,9 +579,9 @@ void closeDoorLock() {
 // Funktion zum überprüfen ob Tür geschlossen ist
 void checkDoorLockSensor() {
     if (digitalRead(doorLockSensor) == HIGH && state != WRONG_KEY_EXCHANGE) {  // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrongKeyExchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
-        delay(3000);                                                           // Warte 3 Sekunden bis das Türschloss sich schließt
+        delay(1000);                                                           // Warte 3 Sekunden bis das Türschloss sich schließt
         closeDoorLock();                                                       // Türschloss schließen
-        state = READY;
+        changeStateTo(READY);                                                  // Wechsel in den Zustand "ready"
     }
 }
 
@@ -535,7 +668,7 @@ char keypadReadout() {
 
             } else {  // Zwei Zahlen nacheinander wurden gedrückt
 
-                keyNumber = (firstKey - '0') * 10 + (key - '0');
+                keyNumber = (firstKey - '0') * 10 + (key - '0'); // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
 
                 // Text für LCD Display
                 strcpy(textRow[0], "Suche Schluessel:");
