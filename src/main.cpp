@@ -528,7 +528,7 @@ char keypadReadout() {
                 lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
                 // Text für LCD Display
-                strcpy(textRow[0], "Suche Schlüssel:");
+                strcpy(textRow[0], "Suche Schluessel:");
                 sprintf(textRow[1], "%c", firstKey);
                 strcpy(textRow[2], "");
                 strcpy(textRow[3], "");
