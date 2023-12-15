@@ -1,5 +1,5 @@
 #include <SD.h>
-#include <SPI.h>
+
 
 #define CS 10
 #define CD 9

@@ -6,13 +6,11 @@
 #include <Keypad.h>             // Library for Keypad
 #include <LiquidCrystal_I2C.h>  // Library for I2C Display
 #include <MFRC522.h>            // Library for RFID Reader
+#include <SD.h>                 // Library for SD Card Reader
 #include <SPI.h>                // Library for SPI Communication (for RFID Reader)
-#include <Wire.h>               // opt
-#include <stdio.h>              // opt
-#include <stream.h>             // opt
-#include <string.h>             // opt
 
-//#include "State.cpp"
+// #include "State.cpp"
+#include "Database.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Pin-declarations & related variables:
@@ -34,6 +32,11 @@ char lastTextRow[4][178];                                  //{{0},{0},{0},{0}}; 
 #define SS_PIN 10
 #define RST_PIN 9
 MFRC522 rfidReader(SS_PIN, RST_PIN);
+
+// SD-Card Reader
+Database database;
+#define sdOut 4
+#define sdIn 5
 
 // Status-LED
 #define statusLedRed 9     // Pin für den roten Kanal
@@ -123,6 +126,22 @@ void setup() {
     // RFID Reader initialisation
     SPI.begin();
     rfidReader.PCD_Init();
+
+    // SD-Card Reader initialisation
+    pinMode(sdOut, OUTPUT);
+    pinMode(sdIn, INPUT);
+    if (!digitalRead(sdIn)) {
+        Serial.print("No SD card found! Insert a card to proceed...");
+        while (!digitalRead(sdIn)) {
+        }
+        Serial.println("OK!");
+    }
+    if (!SD.begin(sdOut)) {
+        Serial.println("Couldn't initialize SD card reader!");
+        while (true){
+        }
+    }
+    database = Database(SD);
 
     // OUTPUT-Pins
     pinMode(statusLedRed, OUTPUT);
@@ -218,7 +237,7 @@ void changeStateTo(State newState) {
             initiateGuestKeySearch();
             break;
         default:
-            break;  
+            break;
     }
     state = newState;
 }
@@ -226,9 +245,8 @@ void changeStateTo(State newState) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-functions:
 void initiateInactive() {
-
     // TODO: Alle SchlüsselLEDs ausschalten
-    openDoorLock(); // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
+    openDoorLock();  // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
 
     strcpy(textRow[0], "Bitte Türe");
     strcpy(textRow[1], "schliessen!");
@@ -240,7 +258,7 @@ void inactive() {
     blinkStatusLed(RED);
 
     // state changeconditions:
-    if(isDoorReadyForClosing()) {
+    if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
@@ -266,14 +284,14 @@ void ready() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN);       // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else if (isRfidEmployee(rfidId)) {
-            changeStateTo(LOGGED_IN);               // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
+            changeStateTo(LOGGED_IN);  // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
         } else {
             // print a warning for a wrong RFID device
         }
-    } else if (keyNumberVar != 0) { 
-        changeStateTo(GUEST_KEY_SEARCH); // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
+    } else if (keyNumberVar != 0) {
+        changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
 
@@ -293,25 +311,24 @@ void loggedIn() {
     // TODO: Schlüsselbolzen der Schlüssel aktualisieren nach Berechtigung oder fehlen des Schlüssels
 
     // state changeconditions:
-    keyNumberVar = keypadReadout();  // Auslesen des Keypads       
+    keyNumberVar = keypadReadout();  // Auslesen des Keypads
 
     if (isRfidPresented()) {
-    long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) { 
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(LOGGED_IN_KEY_RETURN); // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn"
+            changeStateTo(LOGGED_IN_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn"
         } else {
             // TODO?: print a warning for a wrong RFID device
         }
-    } else if (keyNumberVar != 0) { 
-        changeStateTo(LOGGED_IN_KEY_SEARCH); // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
-    } else if (isDoorReadyForClosing()){
+    } else if (keyNumberVar != 0) {
+        changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
+    } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
 
 void initiateLoggedInKeyReturn() {
-
     // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
     // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
     openDoorLock();
@@ -328,7 +345,7 @@ void loggedInKeyReturn() {
     // state changeconditions:
 
     // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(loggedIn) und SD aktualisieren
-    if (isDoorReadyForClosing()){
+    if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
@@ -351,7 +368,7 @@ void guestKeyReturn() {
     // state changeconditions:
 
     // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(guestWaiting) und SD aktualisieren
-    if (isDoorReadyForClosing()){
+    if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
@@ -372,21 +389,19 @@ void guestWaiting() {
 
     // state changeconditions:
     if (isRfidPresented()) {
-    long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) { 
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN); // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else {
             // TODO?: print a warning for a wrong RFID device
         }
-    } else if (isDoorReadyForClosing()){
+    } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
-
 }
 
 void initiateWrongKeyExchange() {
-   
     openDoorLock();
 
     // TODO: SchlüsselLED des falschen Schlüssels einschalten alle anderen ausschalten
@@ -399,7 +414,7 @@ void initiateWrongKeyExchange() {
 }
 void wrongKeyExchange() {
     // state repetition:
-        blinkStatusLed(RED);
+    blinkStatusLed(RED);
 
     // state changeconditions:
 
@@ -408,13 +423,12 @@ void wrongKeyExchange() {
 }
 
 void initiateWaitingForWrongKey() {
-
     strcpy(textRow[0], "Scanne den eben");
     strcpy(textRow[1], "entnommenen");
     strcpy(textRow[2], "Schluessel und gebe");
     strcpy(textRow[3], "ihn zurück.");
 }
-void waitingForWrongKey() {         // FRAGE: Zustand kann umgangen werden, in dem der Schrank nach Beendigung des Zustands: "wrongKeyExchange" geschlossen wird. Ist das so gewollt?
+void waitingForWrongKey() {  // FRAGE: Zustand kann umgangen werden, in dem der Schrank nach Beendigung des Zustands: "wrongKeyExchange" geschlossen wird. Ist das so gewollt?
 
     // state repetition:
     blinkStatusLed(YELLOW);
@@ -422,8 +436,8 @@ void waitingForWrongKey() {         // FRAGE: Zustand kann umgangen werden, in d
     // state changeconditions:
 
     if (isRfidPresented()) {
-    long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) { 
+        long rfidId = getRfidId();
+        if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
             // TODO: else: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
             // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffnen, alle anderen schließen
@@ -431,17 +445,15 @@ void waitingForWrongKey() {         // FRAGE: Zustand kann umgangen werden, in d
             // TODO?: print a warning for a wrong RFID device
         }
     }
-    //else if () {  // TODO: Warte bis Schlüsselsensor HIGH ist, dann Zeige Meldung:
-            strcpy(textRow[0], "Vorgang");
-            strcpy(textRow[1], "abgeschlossen.");
-            strcpy(textRow[2], "Schliesse Tuer.");
-            strcpy(textRow[3], "");
+    // else if () {  // TODO: Warte bis Schlüsselsensor HIGH ist, dann Zeige Meldung:
+    strcpy(textRow[0], "Vorgang");
+    strcpy(textRow[1], "abgeschlossen.");
+    strcpy(textRow[2], "Schliesse Tuer.");
+    strcpy(textRow[3], "");
     //}
-            
 }
 
 void initiateLoggedInKeySearch() {
-
     setStatusLed(GREEN);
 
     // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
@@ -450,12 +462,11 @@ void initiateLoggedInKeySearch() {
     strcpy(textRow[1], "liegt bei");
     strcpy(textRow[2], "Mitarbeiter");
     sprintf(textRow[3], "yy");
-
 }
 void loggedInKeySearch() {
     // state repetition:
-    keyNumberVar = 0; // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
-    static const long interval = 5000;        // Intervall in Millisekunden (hier 5 Sekunden)
+    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+    static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
     // TODO: Variable einführen die den zuletzt angemeldeten mitarbeiterID speichert um diese wieder aufrufen zu können beim wechsel.
 
@@ -463,20 +474,18 @@ void loggedInKeySearch() {
 
     if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
-    }
-    else if (isRfidPresented()) {
+    } else if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(LOGGED_IN_KEY_RETURN);    // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn" mit der information welcher Mitarbeiter zuletzt angemeldet war
+            changeStateTo(LOGGED_IN_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn" mit der information welcher Mitarbeiter zuletzt angemeldet war
         } else {
-        // print a warning for a wrong RFID device
+            // print a warning for a wrong RFID device
         }
-    } else if (isDoorReadyForClosing()){
+    } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
-
-}   
+}
 
 void initiateGuestKeySearch() {
     setStatusLed(RED);
@@ -487,14 +496,12 @@ void initiateGuestKeySearch() {
     strcpy(textRow[1], "liegt bei");
     strcpy(textRow[2], "Mitarbeiter");
     sprintf(textRow[3], "yy");
-
 }
 void guestKeySearch() {
     // state repetition:
-    keyNumberVar = 0; // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
-    static const long interval = 5000;        // Intervall in Millisekunden (hier 5 Sekunden)
+    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+    static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
-
 
     // state changeconditions:
 
@@ -505,14 +512,13 @@ void guestKeySearch() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN);       // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else if (isRfidEmployee(rfidId)) {
-            changeStateTo(LOGGED_IN);               // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
+            changeStateTo(LOGGED_IN);  // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
         } else {
             // print a warning for a wrong RFID device
         }
     }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -567,7 +573,7 @@ void blinkStatusLed(LedColor color) {
 
 boolean isDoorReadyForClosing() {
     // 5s time to open the door manually, before trying to close it automatically
-    return digitalRead(doorLockSensor) == HIGH && millis() - currentStateEnteredTime > 5000; 
+    return digitalRead(doorLockSensor) == HIGH && millis() - currentStateEnteredTime > 5000;
 }
 
 // Funktion zum öffnen des Türschlosses
@@ -663,7 +669,7 @@ char keypadReadout() {
 
             } else {  // Zwei Zahlen nacheinander wurden gedrückt
 
-                keyNumber = (firstKey - '0') * 10 + (key - '0'); // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
+                keyNumber = (firstKey - '0') * 10 + (key - '0');  // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
 
                 // Text für LCD Display
                 strcpy(textRow[0], "Suche Schluessel:");
@@ -678,8 +684,8 @@ char keypadReadout() {
 
     // Überprüfe, ob die Zeitgrenze überschritten wurde. Wenn ja, setze die erste Ziffer zurück
     if (firstKey != '\0' && currentTime - lastKeyPressTime >= resetTimeout) {
-        firstKey = '\0';  // Setze die erste Ziffer zurück
-        changeStateTo(state); // Initialisiere den aktuellen State neu um das Display auf den Ausgangszustand zurückzusetzen
+        firstKey = '\0';       // Setze die erste Ziffer zurück
+        changeStateTo(state);  // Initialisiere den aktuellen State neu um das Display auf den Ausgangszustand zurückzusetzen
     }
 
     return keyNumber;  // Gib die Zahlenkombination zurück
@@ -691,11 +697,11 @@ boolean isRfidPresented() {
 }
 
 boolean isRfidKey(long rfidId) {
-    return rfidId == 123456789;
+    return database.isIdKey(rfidId);
 }
 
 boolean isRfidEmployee(long rfidId) {
-    return rfidId == 987654321;
+    return database.isIdEmployee(rfidId);
 }
 
 long getRfidId() {

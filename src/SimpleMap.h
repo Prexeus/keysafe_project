@@ -75,4 +75,40 @@ class SimpleMap { // # include <map> from STL
         }
         return false;
     }
+
+    bool containsValue(const V& value) const {
+        Node* current = head;
+        while (current != nullptr) {
+            if (current->value == value) {
+                return true;
+            }
+            current = current->next;
+        }
+        return false;
+    }
+
+    size_t size() const {
+        size_t count = 0;
+        Node* current = head;
+        while (current != nullptr) {
+            count++;
+            current = current->next;
+        }
+        return count;
+    }
+
+    bool isEmpty() const {
+        return head == nullptr;
+    }
+
+    void print() const {
+        Node* current = head;
+        while (current != nullptr) {
+            Serial.print(current->key);
+            Serial.print(" -> ");
+            Serial.println(current->value);
+            current = current->next;
+        }
+    }
+    
 };

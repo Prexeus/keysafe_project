@@ -28,6 +28,22 @@ class SimpleQueue {  // # include <QueueList.h>
         return itemCount == 0;
     }
 
+    bool isFull() const {
+        return itemCount == SIZE;
+    }
+
+    size_t size() const {
+        return itemCount;
+    }
+
+    void print() {
+        for (size_t i = 0; i < SIZE; ++i) {
+            Serial.print(data[i]);
+            Serial.print(" ");
+        }
+        Serial.println();
+    }
+
    private:
     T data[SIZE];
     size_t front;
