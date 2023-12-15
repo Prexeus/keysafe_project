@@ -175,9 +175,6 @@ void loop() {
             break;
     }
 
-    // Überprüfe ob die Schranktür geschlossen ist
-    checkDoorLockSensor();
-
     // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays am Ende der Void Loop Funktion!
     taskText(textRow[0], 0);
     taskText(textRow[1], 1);
@@ -240,18 +237,17 @@ void initiateInactive() {
 }
 void inactive() {
     // state repetition:
-    blinkStatusLed(RED); //FRAGE: sollte das nicht in initiateInactive() stehen?
+    blinkStatusLed(RED);
 
-    //FRAGE: Das folgende ist eigentlich unnötig oder? Es wird ja ständig im Loop geprüft ob die Tür geschlossen ist und wenn ja wird in ready gewechselt. 
     // state changeconditions:
-    //if (isDoorLocked()) {               // Wechsle zu State "ready" wenn die Tür geschlossen ist
-    //    changeStateTo(READY);
-    //}
+    if(isDoorReadyForClosing()) {
+        changeStateTo(READY);
+    }
 }
 
 void initiateReady() {
     setStatusLed(RED);
-    //closeDoorLock();  FRAGE: Muss an sich nicht aufgerufen werden, da man immer über checkDoorLockSensor() in den Zustand "ready" wechselt und dort das Türschloss geschlossen wird
+    closeDoorLock();
     // TODO: Alle SchlüsselLEDs ausschalten
     // TODO: Alle Schlüsselbolzen schließen
 
@@ -309,6 +305,8 @@ void loggedIn() {
         }
     } else if (keyNumberVar != 0) { 
         changeStateTo(LOGGED_IN_KEY_SEARCH); // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
+    } else if (isDoorReadyForClosing()){
+        changeStateTo(READY);
     }
 }
 
@@ -316,6 +314,7 @@ void initiateLoggedInKeyReturn() {
 
     // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
     // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
+    openDoorLock();
 
     strcpy(textRow[0], "Stecken Sie         ");
     strcpy(textRow[1], "den gescannten      ");
@@ -329,6 +328,9 @@ void loggedInKeyReturn() {
     // state changeconditions:
 
     // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(loggedIn) und SD aktualisieren
+    if (isDoorReadyForClosing()){
+        changeStateTo(READY);
+    }
 }
 
 void initiateGuestKeyReturn() {
@@ -349,7 +351,9 @@ void guestKeyReturn() {
     // state changeconditions:
 
     // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(guestWaiting) und SD aktualisieren
-
+    if (isDoorReadyForClosing()){
+        changeStateTo(READY);
+    }
 }
 
 void initiateGuestWaiting() {
@@ -367,11 +371,6 @@ void guestWaiting() {
     // state repetition:
 
     // state changeconditions:
-    
-    //if (isDoorLocked()) {    // Gleiches Problem wie in "inactive" --> FRAGE: Ist das nicht redundant zu checkDoorLockSensor()? Wie oben beschrieben
-    //    changeStateTo(READY);
-    //}
-
     if (isRfidPresented()) {
     long rfidId = getRfidId();
         if (isRfidKey(rfidId)) { 
@@ -380,6 +379,8 @@ void guestWaiting() {
         } else {
             // TODO?: print a warning for a wrong RFID device
         }
+    } else if (isDoorReadyForClosing()){
+        changeStateTo(READY);
     }
 
 }
@@ -471,6 +472,8 @@ void loggedInKeySearch() {
         } else {
         // print a warning for a wrong RFID device
         }
+    } else if (isDoorReadyForClosing()){
+        changeStateTo(READY);
     }
 
 }   
@@ -514,10 +517,6 @@ void guestKeySearch() {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // functions:
-
-boolean isDoorLocked() {                            // FRAGE: Ist das nicht redundant zu checkDoorLockSensor()? Wie oben beschrieben
-    return digitalRead(doorLockSensor) == HIGH;
-}
 
 void setStatusLed(LedColor color) {
     switch (color) {
@@ -566,6 +565,11 @@ void blinkStatusLed(LedColor color) {
     }
 }
 
+boolean isDoorReadyForClosing() {
+    // 5s time to open the door manually, before trying to close it automatically
+    return digitalRead(doorLockSensor) == HIGH && millis() - currentStateEnteredTime > 5000; 
+}
+
 // Funktion zum öffnen des Türschlosses
 void openDoorLock() {
     digitalWrite(doorLock, HIGH);  // Türschloss auf
@@ -574,15 +578,6 @@ void openDoorLock() {
 // Funktion zum schließen des Türschlosses
 void closeDoorLock() {
     digitalWrite(doorLock, LOW);  // Türschloss zu
-}
-
-// Funktion zum überprüfen ob Tür geschlossen ist
-void checkDoorLockSensor() {
-    if (digitalRead(doorLockSensor) == HIGH && state != WRONG_KEY_EXCHANGE) {  // Wenn der Türschloss-Sensor HIGH ist und der Zustand nicht "wrongKeyExchange" ist, da dieser Vorgang auf jeden Fall abgeschlossen werden muss bevor in "ready" gewechselt werden kann
-        delay(1000);                                                           // Warte 3 Sekunden bis das Türschloss sich schließt
-        closeDoorLock();                                                       // Türschloss schließen
-        changeStateTo(READY);                                                  // Wechsel in den Zustand "ready"
-    }
 }
 
 // Funktion für die Scrollfunktion, um den Text in der Variable zu schieben!
