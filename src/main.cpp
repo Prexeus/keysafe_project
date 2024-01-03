@@ -86,6 +86,15 @@ struct UnloggedKeyChange {
 State state = STARTING;
 
 UnloggedKeyChange currentChangeArray[10];
+boolean isKeyPresentArray[50];
+boolean currentIsKeyPresentArray[50];
+
+boolean isEmployeePermissionedArray[50];
+
+boolean openedKeyLocks[50];
+boolean redKeyLeds[50];
+boolean greenKeyLeds[50];
+
 long keysPrestent;
 long keysTaken;
 
@@ -147,7 +156,7 @@ void setup() {
     }
     if (!SD.begin(sdOut)) {
         Serial.println("Couldn't initialize SD card reader!");
-        while (true){
+        while (true) {
         }
     }
     database = Database(SD);
@@ -248,7 +257,12 @@ void changeStateTo(State newState) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-functions:
 void initiateInactive() {
-    // TODO: Alle SchlüsselLEDs ausschalten
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    updateKeyLedsAndLocks();
     openDoorLock();  // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
 
     strcpy(textRow[0], "Bitte Türe");
@@ -269,8 +283,12 @@ void inactive() {
 void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
-    // TODO: Alle SchlüsselLEDs ausschalten
-    // TODO: Alle Schlüsselbolzen schließen
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Scannen Sie Ihren");
     strcpy(textRow[1], "RFID-Chip oder");
@@ -286,8 +304,7 @@ void ready() {
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
-            if(isKeyPresent(rfidId)){
-
+            if (isKeyPresent(rfidId)) {
             }
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
             changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
@@ -304,6 +321,25 @@ void ready() {
 void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
+    // TODO isEmployeePermissionedArray befüllen
+    for (int i = 0; i < 50; i++) {
+        if (isKeyPresentArray[i]) {
+            if (isEmployeePermissionedArray[i]) {
+                redKeyLeds[i] = false;
+                greenKeyLeds[i] = true;
+                openedKeyLocks[i] = true;
+            } else {
+                redKeyLeds[i] = true;
+                greenKeyLeds[i] = false;
+                openedKeyLocks[i] = false;
+            }
+        } else {
+            redKeyLeds[i] = false;
+            greenKeyLeds[i] = false;
+            openedKeyLocks[i] = false;
+        }
+    }
+    updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Schluessel entnehmen");
     strcpy(textRow[1], "oder zur Rueckgabe");
@@ -312,9 +348,14 @@ void initiateLoggedIn() {
 }
 void loggedIn() {
     // state repetition:
-
-    // TODO: SchlüsselLEDs der Schlüssel aktualisieren nach Berechtigung oder fehlen des Schlüssels
-    // TODO: Schlüsselbolzen der Schlüssel aktualisieren nach Berechtigung oder fehlen des Schlüssels
+    int takenKey = getTakenKey();
+    if (takenKey != -1) {  // got Key taken?
+        isKeyPresentArray[takenKey] = 0;
+        redKeyLeds[takenKey] = false;
+        greenKeyLeds[takenKey] = false;
+        openedKeyLocks[takenKey] = false;
+        updateKeyLedsAndLocks();
+    }
 
     // state changeconditions:
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
@@ -562,7 +603,7 @@ void closeDoorLock() {
 }
 
 // Funktion für die Scrollfunktion, um den Text in der Variable zu schieben!
-char charAt(char *text, int pos)
+char charAt(char* text, int pos)
 // scrolling-logic coded here
 {
     if (pos < ledLine)
@@ -574,7 +615,7 @@ char charAt(char *text, int pos)
 }
 
 // Zeitlicher Ablauf wann gescrollt werden muss und ob die Textlänge ein Scrollen erfordert prüfen und ggf. Scrollen durchführen
-void taskText(char *text, byte line)
+void taskText(char* text, byte line)
 // scroll the LED lines
 {
     char currentText[ledLine + 1];
@@ -687,10 +728,45 @@ long getRfidId() {
     return code;
 }
 
-boolean isKeyPresent(long rfidId){
-    return database.isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
+boolean isKeyPresent(long rfidId) {
+    return false;  // database.isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
 }
 
+/**
+ * @return Index of changed Key, or -1 if no Key changed.
+ */
+int getTakenKey() {
+    return getNotEqualInt(isKeyPresentArray, currentIsKeyPresentArray);
+}
 
+/**
+ * @brief Finds the index of the first not-equal element in two boolean arrays.
+ *
+ * Compares boolean arrays and returns the index of the first difference.
+ * If arrays are equal, it returns -1.
+ *
+ * @param array1 Pointer to the first boolean array.
+ * @param array2 Pointer to the second boolean array.
+ * @return Index of the first not-equal element, or -1 if arrays are equal.
+ */
+int getNotEqualInt(bool* array1, bool* array2) {
+    for (int i = 0; i < sizeof(array1); i++) {
+        if (array1[i] != array2[i]) {
+            return i;
+        }
+    }
+    return -1;
+}
 
+boolean equals(boolean* array1, boolean* array2) {
+    for (int i = 0; i < sizeof(array1); i++) {
+        if (array1[i] != array2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
 
+void updateKeyLedsAndLocks() {
+    // TODO: update key leds and locks according to arrays
+}
