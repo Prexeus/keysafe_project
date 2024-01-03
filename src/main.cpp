@@ -97,7 +97,6 @@ typedef enum State {
     GUEST_WAITING,
 
     WRONG_KEY_EXCHANGE,
-    WAITING_FOR_WRONG_KEY,
 
     LOGGED_IN_KEY_SEARCH,
     GUEST_KEY_SEARCH
@@ -181,9 +180,6 @@ void loop() {
         case WRONG_KEY_EXCHANGE:
             wrongKeyExchange();
             break;
-        case WAITING_FOR_WRONG_KEY:
-            waitingForWrongKey();
-            break;
         case LOGGED_IN_KEY_SEARCH:
             loggedInKeySearch();
             break;
@@ -226,9 +222,6 @@ void changeStateTo(State newState) {
             break;
         case WRONG_KEY_EXCHANGE:
             initiateWrongKeyExchange();
-            break;
-        case WAITING_FOR_WRONG_KEY:
-            initiateWaitingForWrongKey();
             break;
         case LOGGED_IN_KEY_SEARCH:
             initiateLoggedInKeySearch();
@@ -419,38 +412,7 @@ void wrongKeyExchange() {
     // state changeconditions:
 
     // TODO: IF Abfrage ob der Sonsor des falschen Schlüssels LOW ist und dann nächste Zeile überprüfen
-    // TODO: If Abfrage ob der Sensor des falschen Schlüssels HIGH ist, wenn ja changeStateTo(waitingForWrongKey) und SD aktualisieren
-}
-
-void initiateWaitingForWrongKey() {
-    strcpy(textRow[0], "Scanne den eben");
-    strcpy(textRow[1], "entnommenen");
-    strcpy(textRow[2], "Schluessel und gebe");
-    strcpy(textRow[3], "ihn zurück.");
-}
-void waitingForWrongKey() {  // FRAGE: Zustand kann umgangen werden, in dem der Schrank nach Beendigung des Zustands: "wrongKeyExchange" geschlossen wird. Ist das so gewollt?
-
-    // state repetition:
-    blinkStatusLed(YELLOW);
-
-    // state changeconditions:
-
-    if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            // TODO: else: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
-            // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffnen, alle anderen schließen
-        } else {
-            // TODO?: print a warning for a wrong RFID device
-        }
-    }
-    // else if () {  // TODO: Warte bis Schlüsselsensor HIGH ist, dann Zeige Meldung:
-    strcpy(textRow[0], "Vorgang");
-    strcpy(textRow[1], "abgeschlossen.");
-    strcpy(textRow[2], "Schliesse Tuer.");
-    strcpy(textRow[3], "");
-    //}
+    // TODO: If Abfrage ob der Sensor des falschen Schlüssels HIGH ist, wenn ja Tür schließen und somit in READY wechseln und SD aktualisieren
 }
 
 void initiateLoggedInKeySearch() {
