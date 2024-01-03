@@ -75,9 +75,19 @@ unsigned long lastKeyPressTime = 0;
 const unsigned long resetTimeout = 5000;  // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
 int keyNumberVar = 0;                     // Globale Variable für die Zahlenkombination des Keypads
 
+struct UnloggedKeyChange {
+    long keyId;
+    boolean isPresent;
+    long employeeId;
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // global variables:
 State state = STARTING;
+
+UnloggedKeyChange currentChangeArray[10];
+long keysPrestent;
+long keysTaken;
 
 unsigned long currentStateEnteredTime;
 
@@ -283,6 +293,9 @@ void ready() {
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
+            if(isKeyPresent(rfidId)){
+
+            }
             // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
             changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else if (isRfidEmployee(rfidId)) {
@@ -711,3 +724,11 @@ long getRfidId() {
     }
     return code;
 }
+
+boolean isKeyPresent(long rfidId){
+    return database.isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
+}
+
+
+
+

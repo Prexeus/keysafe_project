@@ -21,8 +21,8 @@ struct EmployeeData {
 class Database {
    private:
     static const int maxRowCount = 70;
-    SimpleMap<unsigned int, unsigned int> keyMap;
-    SimpleMap<unsigned int, EmployeeData> employeeMap;
+    SimpleMap<long, unsigned int> keyMap;
+    SimpleMap<long, EmployeeData> employeeMap;
 
     SimpleQueue<const char*, maxRowCount> getRowQueue(char string[]) {
         SimpleQueue<const char*, maxRowCount> resultQueue;
@@ -104,14 +104,13 @@ class Database {
         employeeMap.print();
     }
 
-    boolean isIdKey (unsigned int id) {
+    boolean isIdKey(long id) {
         return keyMap.containsKey(id);
     }
 
-    boolean isIdEmployee (unsigned int id) {
+    boolean isIdEmployee(long id) {
         return employeeMap.containsKey(id);
     }
-
 };
 
 /*
