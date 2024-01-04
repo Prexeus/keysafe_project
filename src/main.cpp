@@ -79,7 +79,6 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 // global variables:
 State state = STARTING;
 
-
 long keyLendingArray[50];
 boolean isKeyPresentArray[50];
 boolean newIsKeyPresentArray[50];
@@ -538,7 +537,7 @@ void loggedInKeySearch() {
     updateNewIsKeyPresentArray();
     int takenKey = getTakenKey();
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
-    if (takenKey != -1) {  // got Key taken?
+    if (takenKey != -1) {            // got Key taken?
         isKeyPresentArray[takenKey] = 0;
         keyLendingArray[takenKey] = currentEmployeeId;
         changeStateTo(LOGGED_IN);
@@ -839,5 +838,5 @@ void updateKeyLedsAndLocks() {
 }
 
 void updateNewIsKeyPresentArray() {
-    //TODO @Maxi read shift registers
+    // TODO @Maxi read shift registers
 }
