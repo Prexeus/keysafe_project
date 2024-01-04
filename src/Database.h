@@ -18,10 +18,16 @@ struct EmployeeData {
     boolean keyNumber9;
 };
 
+struct UnloggedKeyChange {
+    long keyId;
+    boolean isPresent;
+    long employeeId;
+};
+
 class Database {
    private:
     static const int maxRowCount = 70;
-    SimpleMap<long, unsigned int> keyMap;
+    SimpleMap<long, int> keyMap;
     SimpleMap<long, EmployeeData> employeeMap;
 
     SimpleQueue<const char*, maxRowCount> getRowQueue(char string[]) {
@@ -110,6 +116,14 @@ class Database {
 
     boolean isIdEmployee(long id) {
         return employeeMap.containsKey(id);
+    }
+
+    int getKeyNumber(long id) {
+        return keyMap.get(id);
+    }
+
+    void processChanges(long* keyLendingArray) {
+        
     }
 };
 

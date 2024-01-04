@@ -1,5 +1,5 @@
 template <typename K, typename V>
-class SimpleMap { // # include <map> from STL
+class SimpleMap {  // # include <map> from STL
    private:
     struct Node {
         K key;
@@ -15,6 +15,18 @@ class SimpleMap { // # include <map> from STL
 
     ~SimpleMap() {
         clear();
+    }
+
+    V get(const K& key) const {
+        Node* current = head;
+        while (current != nullptr) {
+            if (current->key == key) {
+                return current->value;
+            }
+            current = current->next;
+        }
+        // Return a default-constructed V if the key is not found
+        return V();
     }
 
     void insert(const K& key, const V& value) {
@@ -110,5 +122,69 @@ class SimpleMap { // # include <map> from STL
             current = current->next;
         }
     }
-    
+
+    // Function to get a vector of all keys in the map
+    std::vector<K> getKeys() const {
+        std::vector<K> keys;
+        Node* current = head;
+        while (current != nullptr) {
+            keys.push_back(current->key);
+            current = current->next;
+        }
+        return keys;
+    }
+
+    // Function to get a vector of all values in the map
+    std::vector<V> getValues() const {
+        std::vector<V> values;
+        Node* current = head;
+        while (current != nullptr) {
+            values.push_back(current->value);
+            current = current->next;
+        }
+        return values;
+    }
+
+    // Function to update the value associated with a key
+    void update(const K& key, const V& value) {
+        Node* current = head;
+        while (current != nullptr) {
+            if (current->key == key) {
+                current->value = value;
+                return;
+            }
+            current = current->next;
+        }
+    }
+
+    // Function to copy the contents of another SimpleMap into this map
+    void merge(const SimpleMap<K, V>& otherMap) {
+        Node* otherCurrent = otherMap.head;
+        while (otherCurrent != nullptr) {
+            insert(otherCurrent->key, otherCurrent->value);
+            otherCurrent = otherCurrent->next;
+        }
+    }
+
+    // Function to remove all nodes with a specific value
+    void removeAllWithValue(const V& value) {
+        Node* current = head;
+        Node* prev = nullptr;
+
+        while (current != nullptr) {
+            if (current->value == value) {
+                if (prev == nullptr) {
+                    head = current->next;
+                } else {
+                    prev->next = current->next;
+                }
+                Node* temp = current;
+                current = current->next;
+                delete temp;
+            } else {
+                prev = current;
+                current = current->next;
+            }
+        }
+    }
 };

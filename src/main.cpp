@@ -75,19 +75,14 @@ unsigned long lastKeyPressTime = 0;
 const unsigned long resetTimeout = 5000;  // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
 int keyNumberVar = 0;                     // Globale Variable für die Zahlenkombination des Keypads
 
-struct UnloggedKeyChange {
-    long keyId;
-    boolean isPresent;
-    long employeeId;
-};
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // global variables:
 State state = STARTING;
 
-UnloggedKeyChange currentChangeArray[10];
+
+long keyLendingArray[50];
 boolean isKeyPresentArray[50];
-boolean currentIsKeyPresentArray[50];
+boolean newIsKeyPresentArray[50];
 
 boolean isEmployeePermissionedArray[50];
 
@@ -95,8 +90,9 @@ boolean openedKeyLocks[50];
 boolean redKeyLeds[50];
 boolean greenKeyLeds[50];
 
-long keysPrestent;
-long keysTaken;
+long currentKeyId;
+long currentKeyNumber;
+long currentEmployeeId;
 
 unsigned long currentStateEnteredTime;
 
@@ -283,6 +279,7 @@ void inactive() {
 void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
+    database.processChanges(keyLendingArray);
     for (int i = 0; i < 50; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
@@ -300,18 +297,21 @@ void ready() {
 
     // state changeconditions:
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
-
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
-            if (isKeyPresent(rfidId)) {
+            currentKeyId = rfidId;
+            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
+                changeStateTo(WRONG_KEY_EXCHANGE);
+            } else {
+                changeStateTo(GUEST_KEY_RETURN);
             }
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
         } else if (isRfidEmployee(rfidId)) {
-            changeStateTo(LOGGED_IN);  // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
+            currentEmployeeId = rfidId;
+            changeStateTo(LOGGED_IN);
         } else {
-            // print a warning for a wrong RFID device
+            // TODO print a warning for a wrong RFID device
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
@@ -321,7 +321,7 @@ void ready() {
 void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
-    // TODO isEmployeePermissionedArray befüllen
+    // TODO (@Maxi) isEmployeePermissionedArray befüllen
     for (int i = 0; i < 50; i++) {
         if (isKeyPresentArray[i]) {
             if (isEmployeePermissionedArray[i]) {
@@ -348,9 +348,11 @@ void initiateLoggedIn() {
 }
 void loggedIn() {
     // state repetition:
+    updateNewIsKeyPresentArray();
     int takenKey = getTakenKey();
     if (takenKey != -1) {  // got Key taken?
         isKeyPresentArray[takenKey] = 0;
+        keyLendingArray[takenKey] = currentEmployeeId;
         redKeyLeds[takenKey] = false;
         greenKeyLeds[takenKey] = false;
         openedKeyLocks[takenKey] = false;
@@ -362,11 +364,16 @@ void loggedIn() {
 
     if (isRfidPresented()) {
         long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(LOGGED_IN_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn"
+        if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
+            currentKeyId = rfidId;
+            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
+                changeStateTo(WRONG_KEY_EXCHANGE);
+            } else {
+                changeStateTo(LOGGED_IN_KEY_RETURN);
+            }
         } else {
-            // TODO?: print a warning for a wrong RFID device
+            // TODO: print a warning for a wrong RFID device
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
@@ -376,8 +383,15 @@ void loggedIn() {
 }
 
 void initiateLoggedInKeyReturn() {
-    // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
-    // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    redKeyLeds[currentKeyNumber] = true;
+    greenKeyLeds[currentKeyNumber] = false;
+    openedKeyLocks[currentKeyNumber] = true;
+    updateKeyLedsAndLocks();
     openDoorLock();
 
     strcpy(textRow[0], "Stecken Sie         ");
@@ -390,18 +404,27 @@ void loggedInKeyReturn() {
     blinkStatusLed(GREEN);
 
     // state changeconditions:
-
-    // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(loggedIn) und SD aktualisieren
-    if (isDoorReadyForClosing()) {
+    updateNewIsKeyPresentArray();
+    if (newIsKeyPresentArray[currentKeyNumber] == true) {
+        isKeyPresentArray[currentKeyNumber] = true;
+        keyLendingArray[currentKeyNumber] = 0;
+        changeStateTo(LOGGED_IN);
+    } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
 
 void initiateGuestKeyReturn() {
     openDoorLock();
-
-    // TODO: SchlüsselLED des Schlüssels der zurückgegeben werden soll einschalten alle anderen ausschalten
-    // TODO: Schlüsselbolzen des Schlüssels der zurückgegeben werden soll öffne alle anderen schließen
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    redKeyLeds[currentKeyNumber] = true;
+    greenKeyLeds[currentKeyNumber] = false;
+    openedKeyLocks[currentKeyNumber] = true;
+    updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Stecken Sie");
     strcpy(textRow[1], "den gescannten");
@@ -413,18 +436,24 @@ void guestKeyReturn() {
     blinkStatusLed(BLUE);
 
     // state changeconditions:
-
-    // TODO: If abfrage ob der sensor des Schlüssels der zurückgegeben wurde HIGH ist, wenn ja changeStateTo(guestWaiting) und SD aktualisieren
-    if (isDoorReadyForClosing()) {
+    updateNewIsKeyPresentArray();
+    if (newIsKeyPresentArray[currentKeyNumber] == true) {
+        isKeyPresentArray[currentKeyNumber] = true;
+        keyLendingArray[currentKeyNumber] = 0;
+        changeStateTo(GUEST_WAITING);
+    } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
 }
 
 void initiateGuestWaiting() {
     setStatusLed(BLUE);
-
-    // TODO: Alle SchlüsselLEDs ausschalten
-    // TODO: Alle Schlüsselbolzen schließen
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Vorgang");
     strcpy(textRow[1], "abgeschlossen. Neuen");
@@ -438,10 +467,18 @@ void guestWaiting() {
     if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+            currentKeyId = rfidId;
+            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
+                changeStateTo(WRONG_KEY_EXCHANGE);
+            } else {
+                changeStateTo(GUEST_KEY_RETURN);
+            }
+        } else if (isRfidEmployee(rfidId)) {
+            currentEmployeeId = rfidId;
+            changeStateTo(LOGGED_IN);
         } else {
-            // TODO?: print a warning for a wrong RFID device
+            // TODO print a warning for a wrong RFID device
         }
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -450,29 +487,41 @@ void guestWaiting() {
 
 void initiateWrongKeyExchange() {
     openDoorLock();
+    for (int i = 0; i < 50; i++) {
+        redKeyLeds[i] = false;
+        greenKeyLeds[i] = false;
+        openedKeyLocks[i] = false;
+    }
+    redKeyLeds[currentKeyNumber] = true;
+    greenKeyLeds[currentKeyNumber] = false;
+    openedKeyLocks[currentKeyNumber] = false;
+    updateKeyLedsAndLocks();
 
-    // TODO: SchlüsselLED des falschen Schlüssels einschalten alle anderen ausschalten
-    // TODO: Schlüsselbolzen des falschen Schlüssels öffne alle anderen schließen
-
-    strcpy(textRow[0], "Tauschen Sie den");
-    strcpy(textRow[1], "Schluessel der roten");
-    strcpy(textRow[2], "LED mir dem einge-");
-    strcpy(textRow[3], "scannten Schluessel.");
+    strcpy(textRow[0], "Entnehmen Sie den");
+    strcpy(textRow[1], "Schluessel an der");
+    strcpy(textRow[2], "roten LED");
+    strcpy(textRow[3], "");
 }
 void wrongKeyExchange() {
     // state repetition:
     blinkStatusLed(RED);
 
     // state changeconditions:
-
-    // TODO: IF Abfrage ob der Sonsor des falschen Schlüssels LOW ist und dann nächste Zeile überprüfen
-    // TODO: If Abfrage ob der Sensor des falschen Schlüssels HIGH ist, wenn ja Tür schließen und somit in READY wechseln und SD aktualisieren
+    updateNewIsKeyPresentArray();
+    if (newIsKeyPresentArray[currentKeyNumber] == false) {
+        isKeyPresentArray[currentKeyNumber] = false;
+        keyLendingArray[currentKeyNumber] = keyLendingArray[database.getKeyNumber(currentKeyId)];
+        changeStateTo(GUEST_WAITING);
+    } else if (isDoorReadyForClosing()) {
+        changeStateTo(READY);
+    }
 }
 
 void initiateLoggedInKeySearch() {
     setStatusLed(GREEN);
 
     // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
+    // keyLendingArray speichert ID des Mitarbeiters an Index KeyNumber
 
     sprintf(textRow[0], "Schluesselnummer xx");
     strcpy(textRow[1], "liegt bei");
@@ -484,20 +533,32 @@ void loggedInKeySearch() {
     keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
     static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
-    // TODO: Variable einführen die den zuletzt angemeldeten mitarbeiterID speichert um diese wieder aufrufen zu können beim wechsel.
 
     // state changeconditions:
-
-    if (currentMillis - currentStateEnteredTime >= interval) {
+    updateNewIsKeyPresentArray();
+    int takenKey = getTakenKey();
+    keyNumberVar = keypadReadout();  // Auslesen des Keypads
+    if (takenKey != -1) {  // got Key taken?
+        isKeyPresentArray[takenKey] = 0;
+        keyLendingArray[takenKey] = currentEmployeeId;
+        changeStateTo(LOGGED_IN);
+    } else if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
     } else if (isRfidPresented()) {
         long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(LOGGED_IN_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "loggedInKeyReturn" mit der information welcher Mitarbeiter zuletzt angemeldet war
+        if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
+            currentKeyId = rfidId;
+            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
+                changeStateTo(WRONG_KEY_EXCHANGE);
+            } else {
+                changeStateTo(LOGGED_IN_KEY_RETURN);
+            }
         } else {
-            // print a warning for a wrong RFID device
+            // TODO: print a warning for a wrong RFID device
         }
+    } else if (keyNumberVar != 0) {
+        changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
     }
@@ -520,20 +581,26 @@ void guestKeySearch() {
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
 
     // state changeconditions:
-
     if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(READY);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "READY"
-
     } else if (isRfidPresented()) {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
-            // TODO if Abfrage ob Schlüssel der eingescannt wurde bereits zurückgegeben wurde, wenn ja changeStateTo(WRONG_KEY_EXCHANGE)
-            changeStateTo(GUEST_KEY_RETURN);  // Wenn ein Schlüssel gescannt wird, wechsle in den Zustand "guestKeyReturn"
+            currentKeyId = rfidId;
+            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
+                changeStateTo(WRONG_KEY_EXCHANGE);
+            } else {
+                changeStateTo(GUEST_KEY_RETURN);
+            }
         } else if (isRfidEmployee(rfidId)) {
-            changeStateTo(LOGGED_IN);  // Wenn ein RFID-Chip gescant wird, wechsle in den Zustand "loggedIn"
+            currentEmployeeId = rfidId;
+            changeStateTo(LOGGED_IN);
         } else {
-            // print a warning for a wrong RFID device
+            // TODO print a warning for a wrong RFID device
         }
+    } else if (isDoorReadyForClosing()) {
+        changeStateTo(READY);
     }
 }
 
@@ -736,7 +803,7 @@ boolean isKeyPresent(long rfidId) {
  * @return Index of changed Key, or -1 if no Key changed.
  */
 int getTakenKey() {
-    return getNotEqualInt(isKeyPresentArray, currentIsKeyPresentArray);
+    return getNotEqualIndex(isKeyPresentArray, newIsKeyPresentArray);
 }
 
 /**
@@ -749,7 +816,7 @@ int getTakenKey() {
  * @param array2 Pointer to the second boolean array.
  * @return Index of the first not-equal element, or -1 if arrays are equal.
  */
-int getNotEqualInt(bool* array1, bool* array2) {
+int getNotEqualIndex(bool* array1, bool* array2) {
     for (int i = 0; i < sizeof(array1); i++) {
         if (array1[i] != array2[i]) {
             return i;
@@ -768,5 +835,9 @@ boolean equals(boolean* array1, boolean* array2) {
 }
 
 void updateKeyLedsAndLocks() {
-    // TODO: update key leds and locks according to arrays
+    // TODO: @Maxi write shift registers according to arrays
+}
+
+void updateNewIsKeyPresentArray() {
+    //TODO @Maxi read shift registers
 }
