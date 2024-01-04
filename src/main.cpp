@@ -55,6 +55,18 @@ typedef enum LedColor {
 };
 LedColor statusLedColor = OFF;
 
+// Shift-Registers
+#define clockPinSerialOutSr 2
+#define latchPinSerialOutSr 3
+
+#define dataPinRedKeyLedSr 6
+#define dataPinGreenKeyLedSr 4
+#define dataPinKeyLockSr 10
+
+#define clockPinKeyReedSr 1
+#define latchPinKeyReedSr 2
+#define dataPinKeyReedSr 3
+
 // Keypad
 const byte rowAmount = 4;     // vier Reihen
 const byte columnAmount = 3;  // drei Spalten
@@ -79,15 +91,17 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 // global variables:
 State state = STARTING;
 
-long keyLendingArray[50];
-boolean isKeyPresentArray[50];
-boolean newIsKeyPresentArray[50];
+static const int keySlotCount = 50;
 
-boolean isEmployeePermissionedArray[50];
+long keyLendingArray[keySlotCount];
+boolean isKeyPresentArray[keySlotCount];
+boolean newIsKeyPresentArray[keySlotCount];
 
-boolean openedKeyLocks[50];
-boolean redKeyLeds[50];
-boolean greenKeyLeds[50];
+boolean isEmployeePermissionedArray[keySlotCount];
+
+boolean openedKeyLocks[keySlotCount];
+boolean redKeyLeds[keySlotCount];
+boolean greenKeyLeds[keySlotCount];
 
 long currentKeyId;
 long currentKeyNumber;
@@ -155,6 +169,18 @@ void setup() {
         }
     }
     database = Database(SD);
+
+    // Shift-Registers
+    pinMode(clockPinSerialOutSr, OUTPUT);
+    pinMode(latchPinSerialOutSr, OUTPUT);
+
+    pinMode(dataPinRedKeyLedSr, OUTPUT);
+    pinMode(dataPinGreenKeyLedSr, OUTPUT);
+    pinMode(dataPinKeyLockSr, OUTPUT);
+
+    pinMode(clockPinKeyReedSr, OUTPUT);
+    pinMode(latchPinKeyReedSr, OUTPUT);
+    pinMode(dataPinKeyReedSr, INPUT);
 
     // OUTPUT-Pins
     pinMode(statusLedRed, OUTPUT);
@@ -252,7 +278,7 @@ void changeStateTo(State newState) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-functions:
 void initiateInactive() {
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -279,7 +305,7 @@ void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
     database.processChanges(keyLendingArray);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -321,7 +347,7 @@ void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
     // TODO (@Maxi) isEmployeePermissionedArray befüllen
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         if (isKeyPresentArray[i]) {
             if (isEmployeePermissionedArray[i]) {
                 redKeyLeds[i] = false;
@@ -382,7 +408,7 @@ void loggedIn() {
 }
 
 void initiateLoggedInKeyReturn() {
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -415,7 +441,7 @@ void loggedInKeyReturn() {
 
 void initiateGuestKeyReturn() {
     openDoorLock();
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -447,7 +473,7 @@ void guestKeyReturn() {
 
 void initiateGuestWaiting() {
     setStatusLed(BLUE);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -486,7 +512,7 @@ void guestWaiting() {
 
 void initiateWrongKeyExchange() {
     openDoorLock();
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
         openedKeyLocks[i] = false;
@@ -833,10 +859,29 @@ boolean equals(boolean* array1, boolean* array2) {
     return true;
 }
 
+
 void updateKeyLedsAndLocks() {
-    // TODO: @Maxi write shift registers according to arrays
+    for(int i = 0; i <= keySlotCount; i++) {
+        digitalWrite(latchPinSerialOutSr, LOW);
+        digitalWrite(dataPinRedKeyLedSr, redKeyLeds[i]);
+        digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
+        digitalWrite(dataPinKeyLockSr, openedKeyLocks[i]);
+        digitalWrite(clockPinSerialOutSr, HIGH);
+        delay(5); //TODO TEST ift needed
+        digitalWrite(clockPinSerialOutSr, LOW);
+        digitalWrite(latchPinSerialOutSr, HIGH);
+        delay(5); //TODO TEST ift needed
+    }
 }
 
 void updateNewIsKeyPresentArray() {
-    // TODO @Maxi read shift registers
+    digitalWrite(latchPinKeyReedSr, LOW);
+    for(int i = 0; i <= keySlotCount; i++) {
+        digitalWrite(clockPinKeyReedSr, HIGH);
+        //TODO TEST if mirrored
+        newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);
+        digitalWrite(clockPinKeyReedSr, LOW);
+        delay(5); //TODO TEST ift needed
+    }
+    digitalWrite(latchPinKeyReedSr, HIGH);
 }
