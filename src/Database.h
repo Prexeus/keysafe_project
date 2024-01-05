@@ -2,6 +2,7 @@
 #include <SD.h>
 #include <string.h>
 
+#include "SimpleFunctions.h"
 #include "SimpleMap.h"
 #include "SimpleQueue.h"
 
@@ -122,28 +123,8 @@ class Database {
         return keyMap.get(id);
     }
 
-    void processChanges(long* keyLendingArray) {
+    void logChanges(SimpleQueue<int, 10> unloggedChanges, long* keyLendingArray) {
         
     }
 };
 
-/*
-
-void setup() {
-    Serial.begin(9600);
-
-    char keyInputString[] = "1;2\n3;4\n5;6";
-
-    SimpleQueue<const char*, maxRowCount> keyQueue = getRowQueue(keyInputString);
-    while (!keyQueue.isEmpty()) {
-        insertInKeyMap(keyQueue.pop());
-    }
-
-    keyMap.print();
-}
-
-void loop() {
-    // Hier kann Ihr Hauptprogrammcode stehen
-}
-
-*/
