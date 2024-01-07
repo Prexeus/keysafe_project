@@ -131,7 +131,6 @@ typedef enum State {
 
     LOGGED_IN_KEY_SEARCH,
     GUEST_KEY_SEARCH
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,7 +306,7 @@ void inactive() {
 void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
-    database.logChanges(unloggedChanges, keyLendingArray);
+    database.logChanges(&unloggedChanges, keyLendingArray);
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
@@ -550,6 +549,7 @@ void initiateLoggedInKeySearch() {
 
     // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
     // keyLendingArray speichert ID des Mitarbeiters an Index KeyNumber
+    // getEmployeeName(long id) gibt den Namen des Mitarbeiters zurück
 
     sprintf(textRow[0], "Schluesselnummer xx");
     strcpy(textRow[1], "liegt bei");
@@ -841,10 +841,10 @@ void updateKeyLedsAndLocks() {
         digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
         digitalWrite(dataPinKeyLockSr, openedKeyLocks[i]);
         digitalWrite(clockPinSerialOutSr, HIGH);
-        delay(5); //TODO TEST ift needed
+        delay(5); //TODO TEST if needed
         digitalWrite(clockPinSerialOutSr, LOW);
         digitalWrite(latchPinSerialOutSr, HIGH);
-        delay(5); //TODO TEST ift needed
+        delay(5); //TODO TEST if needed
     }
 }
 
@@ -855,7 +855,7 @@ void updateNewIsKeyPresentArray() {
         //TODO TEST if mirrored
         newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);
         digitalWrite(clockPinKeyReedSr, LOW);
-        delay(5); //TODO TEST ift needed
+        delay(5); //TODO TEST if needed
     }
     digitalWrite(latchPinKeyReedSr, HIGH);
 }

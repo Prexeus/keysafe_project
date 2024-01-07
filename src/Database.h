@@ -123,7 +123,11 @@ class Database {
         return keyMap.get(id);
     }
 
-    void logChanges(SimpleQueue<int, 10> unloggedChanges, long* keyLendingArray) {
+    String getEmployeeName(long id) {
+        return employeeMap.get(id).name;
+    }
+
+    void logChanges(SimpleQueue<int, 10>* unloggedChanges, long* keyLendingArray) {
         
     }
 };
