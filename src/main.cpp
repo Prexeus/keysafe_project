@@ -93,14 +93,12 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 // global variables:
 State state = STARTING;
 
-static const int keySlotCount = 50;
-
 SimpleQueue<int, 12> unloggedChanges;
 long keyLendingArray[keySlotCount]; // saves the employeeId if the key is lent, else 0
 boolean isKeyPresentArray[keySlotCount];
 boolean newIsKeyPresentArray[keySlotCount];
 
-boolean isEmployeePermissionedArray[keySlotCount];
+boolean* isEmployeePermissionedArray;
 
 boolean openedKeyLocks[keySlotCount];
 boolean redKeyLeds[keySlotCount];
@@ -337,8 +335,6 @@ void ready() {
         } else if (isRfidEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
-        } else {
-            // TODO print a warning for a wrong RFID device
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
@@ -348,7 +344,7 @@ void ready() {
 void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
-    // TODO (@Maxi) isEmployeePermissionedArray befüllen
+    isEmployeePermissionedArray = database.getEmployeeKeyPermissions(currentEmployeeId);
     for (int i = 0; i < keySlotCount; i++) {
         if (isKeyPresentArray[i]) {
             if (isEmployeePermissionedArray[i]) {
@@ -399,8 +395,6 @@ void loggedIn() {
             } else {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
-        } else {
-            // TODO: print a warning for a wrong RFID device
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
@@ -504,8 +498,6 @@ void guestWaiting() {
         } else if (isRfidEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
-        } else {
-            // TODO print a warning for a wrong RFID device
         }
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -582,8 +574,6 @@ void loggedInKeySearch() {
             } else {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
-        } else {
-            // TODO: print a warning for a wrong RFID device
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
@@ -624,8 +614,6 @@ void guestKeySearch() {
         } else if (isRfidEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
-        } else {
-            // TODO print a warning for a wrong RFID device
         }
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -834,6 +822,7 @@ int getTakenKey() {
     return getNotEqualIndex(isKeyPresentArray, newIsKeyPresentArray);
 }
 
+//TODO @Maxi neue Struktur der Schieberegister implementieren
 void updateKeyLedsAndLocks() {
     for(int i = 0; i <= keySlotCount; i++) {
         digitalWrite(latchPinSerialOutSr, LOW);
