@@ -95,8 +95,8 @@ State state = STARTING;
 
 static const int keySlotCount = 50;
 
-SimpleQueue<int, 10> unloggedChanges;
-long keyLendingArray[keySlotCount];
+SimpleQueue<int, 12> unloggedChanges;
+long keyLendingArray[keySlotCount]; // saves the employeeId if the key is lent, else 0
 boolean isKeyPresentArray[keySlotCount];
 boolean newIsKeyPresentArray[keySlotCount];
 
@@ -306,7 +306,7 @@ void inactive() {
 void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
-    database.logChanges(&unloggedChanges, keyLendingArray);
+    database.logChanges(unloggedChanges, keyLendingArray);
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;

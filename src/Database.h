@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <SD.h>
-#include <string.h>
+#include <SPI.h>
 
 #include "SimpleFunctions.h"
 #include "SimpleMap.h"
@@ -86,6 +86,16 @@ class Database {
         }
     }
 
+    /* TODO Uhrzeitmodul einlesen
+    String getFormattedTime(DateTime now) {
+        return String(now.minute(), DEC) + ":" +
+               String(now.hour(), DEC) + ", " +
+               String(now.day(), DEC) + "." +
+               String(now.month(), DEC) + "." +
+               String(now.year(), DEC) % 100;  // Zeige nur die letzten beiden Stellen des Jahres
+    }
+    */
+
    public:
     Database(SDClass sdCard) {
         char* keyInputString = getSdString("keyData.csv");
@@ -111,24 +121,74 @@ class Database {
         employeeMap.print();
     }
 
+    /**
+     * @brief Checks if the given id is a registered key
+     * 
+     * @param id The id to check
+     * @return true if the id is a registered key
+     */
     boolean isIdKey(long id) {
         return keyMap.containsKey(id);
     }
 
+    /**
+     * @brief Checks if the given id is a registered employee
+     * 
+     * @param id 
+     * @return true if the id is a registered employee
+     */
     boolean isIdEmployee(long id) {
         return employeeMap.containsKey(id);
     }
 
+    /**
+     * @brief Returns the keyNumber of the given keyId
+     * 
+     * @param id 
+     * @return keyNumber
+     */
     int getKeyNumber(long id) {
         return keyMap.get(id);
     }
 
+    /**
+     * @brief Returns the name of the given employeeId
+     * 
+     * @param id 
+     * @return employeeName
+     */
     String getEmployeeName(long id) {
         return employeeMap.get(id).name;
     }
 
-    void logChanges(SimpleQueue<int, 10>* unloggedChanges, long* keyLendingArray) {
-        
+    void logChanges(SimpleQueue<int, 12> unloggedChanges, long* keyLendingArray/*, TODO Uhrzeit*/) {
+        if (!unloggedChanges.isEmpty()) {
+            File protocol = SD.open("protocol.csv");  // allows writing and reading
+            if (protocol) {
+                do {
+                    int keyNumber = unloggedChanges.pop();
+                    long employeeId = keyLendingArray[keyNumber];
+                    if (employeeId != 0) {  // TODO test writing
+                        protocol.println(
+                            /*TODO timer +*/ ";" 
+                            + String(keyNumber) + ";" 
+                            + employeeMap.get(employeeId).name  + ";" 
+                            + "lending"
+                        );
+                    } else {
+                        protocol.println(
+                            /*TODO timer +*/ ";" 
+                            + String(keyNumber) + ";" 
+                            + ";" 
+                            + "return"
+                        );
+                    }
+                } while (!unloggedChanges.isEmpty());
+            } else {
+                Serial.println("Couldn't write log.txt!");
+            }
+            protocol.close();
+        }
     }
+    
 };
-
