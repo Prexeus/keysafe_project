@@ -339,7 +339,7 @@ void ready() {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
-    } else if (keyNumberVar != 0) {
+    } else if (keyNumberVar != 0) {  //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
@@ -399,7 +399,7 @@ void loggedIn() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {
+    } else if (keyNumberVar != 0) {  //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -541,14 +541,10 @@ void wrongKeyExchange() {
 
 void initiateLoggedInKeySearch() {
     setStatusLed(GREEN);
-
-    // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
-    // keyLendingArray speichert ID des Mitarbeiters an Index KeyNumber
-    // getEmployeeName(long id) gibt den Namen des Mitarbeiters zurück
-
-    sprintf(textRow[0], "Schluesselnummer xx");
+    currentKeyNumber = keyNumberVar;
+    sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
     strcpy(textRow[1], "liegt bei");
-    strcpy(textRow[2], "Mitarbeiter");
+    strcpy(textRow[2], database.getEmployeeName(keyLendingArray[currentKeyNumber]));
     sprintf(textRow[3], "yy");
 }
 void loggedInKeySearch() {
@@ -578,7 +574,7 @@ void loggedInKeySearch() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {
+    } else if (keyNumberVar != 0) { //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -587,13 +583,11 @@ void loggedInKeySearch() {
 
 void initiateGuestKeySearch() {
     setStatusLed(RED);
-
-    // TODO: Lese gesuchte keyNumberVar und Mitarbeiter aus SD Karte aus und schreibe in Textvariablen
-
-    sprintf(textRow[0], "Schluesselnummer xx");
+    currentKeyNumber = keyNumberVar;
+    sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
     strcpy(textRow[1], "liegt bei");
     strcpy(textRow[2], "Mitarbeiter");
-    sprintf(textRow[3], "yy");
+    sprintf(textRow[3], database.getEmployeeName(keyLendingArray[currentKeyNumber]));
 }
 void guestKeySearch() {
     // state repetition:
