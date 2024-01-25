@@ -186,8 +186,9 @@ class Database {
      * 
      * @param unloggedChanges A queue of unlogged key changes
      * @param keyLendingArray An array containing information about key lending
+     * //TODO @param 
      */
-    void logChanges(SimpleQueue<int, 12> unloggedChanges, long* keyLendingArray/*, TODO Uhrzeit*/) {
+    void logChanges(SimpleQueue<int, 12> unloggedChanges, long* keyLendingArray/*, //TODO Uhrzeit*/) {
         if (!unloggedChanges.isEmpty()) {
             File protocol = SD.open("protocol.csv");  // allows writing and reading
             if (protocol) {

@@ -94,7 +94,7 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 State state = STARTING;
 
 SimpleQueue<int, 12> unloggedChanges;
-long keyLendingArray[keySlotCount]; // saves the employeeId if the key is lent, else 0
+long keyLendingArray[keySlotCount];  // saves the employeeId if the key is lent, else 0
 boolean isKeyPresentArray[keySlotCount];
 boolean newIsKeyPresentArray[keySlotCount];
 
@@ -198,9 +198,7 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-machine-loop:
 void loop() {
-
     checkSirene();
-    
     switch (state) {
         case INACTIVE:
             inactive();
@@ -339,7 +337,7 @@ void ready() {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
-    } else if (keyNumberVar != 0) {  //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
+    } else if (keyNumberVar != 0) {       // TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
@@ -399,7 +397,7 @@ void loggedIn() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {  //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
+    } else if (keyNumberVar != 0) {           // TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -574,7 +572,7 @@ void loggedInKeySearch() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) { //TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
+    } else if (keyNumberVar != 0) {           // TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -668,14 +666,12 @@ void blinkStatusLed(LedColor color) {
 }
 
 void checkSirene() {
-    long currentMillis = millis();
     int interval = 20000;
-
-    if (currentMillis - currentStateEnteredTime >= interval) { // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
+    if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
         digitalWrite(alarmSiren, HIGH);
     } else {
         digitalWrite(alarmSiren, LOW);
-    }    
+    }
 }
 
 boolean isDoorReadyForClosing() {
@@ -830,29 +826,29 @@ int getTakenKey() {
     return getNotEqualIndex(isKeyPresentArray, newIsKeyPresentArray);
 }
 
-//TODO @Maxi neue Struktur der Schieberegister implementieren
+// TODO @Maxi neue Struktur der Schieberegister implementieren
 void updateKeyLedsAndLocks() {
-    for(int i = 0; i <= keySlotCount; i++) {
+    for (int i = 0; i <= keySlotCount; i++) {
         digitalWrite(latchPinSerialOutSr, LOW);
         digitalWrite(dataPinRedKeyLedSr, redKeyLeds[i]);
         digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
         digitalWrite(dataPinKeyLockSr, openedKeyLocks[i]);
         digitalWrite(clockPinSerialOutSr, HIGH);
-        delay(5); //TODO TEST if needed
+        delay(5);  // TODO TEST if needed
         digitalWrite(clockPinSerialOutSr, LOW);
         digitalWrite(latchPinSerialOutSr, HIGH);
-        delay(5); //TODO TEST if needed
+        delay(5);  // TODO TEST if needed
     }
 }
 
 void updateNewIsKeyPresentArray() {
     digitalWrite(latchPinKeyReedSr, LOW);
-    for(int i = 0; i <= keySlotCount; i++) {
+    for (int i = 0; i <= keySlotCount; i++) {
         digitalWrite(clockPinKeyReedSr, HIGH);
-        //TODO TEST if mirrored
+        // TODO TEST if mirrored
         newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);
         digitalWrite(clockPinKeyReedSr, LOW);
-        delay(5); //TODO TEST if needed
+        delay(5);  // TODO TEST if needed
     }
     digitalWrite(latchPinKeyReedSr, HIGH);
 }
