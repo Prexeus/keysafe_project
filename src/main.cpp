@@ -667,8 +667,10 @@ void blinkStatusLed(LedColor color) {
 
 void checkSirene() {
     int interval = 20000;
-    if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
-        digitalWrite(alarmSiren, HIGH);
+    if (state != READY) {   // Wenn der Status "READY" ist, wird die Sirene nicht aktiviert
+        if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
+            digitalWrite(alarmSiren, HIGH);
+        }
     } else {
         digitalWrite(alarmSiren, LOW);
     }
