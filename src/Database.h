@@ -9,7 +9,7 @@
 static const int keySlotCount = 50;
 
 struct EmployeeData {
-    String name;
+    const char* name;
     boolean employeeKeyPermissions[keySlotCount];
 };
 
@@ -167,7 +167,7 @@ class Database {
      * @param id The employeeId
      * @return String The employeeName
      */
-    String getEmployeeName(long id) {
+    const char* getEmployeeName(long id) {
         return employeeMap.get(id).name;
     }
 
