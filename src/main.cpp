@@ -200,6 +200,9 @@ void setup() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state-machine-loop:
 void loop() {
+
+    checkSirene();
+    
     switch (state) {
         case INACTIVE:
             inactive();
@@ -680,6 +683,17 @@ void blinkStatusLed(LedColor color) {
     } else {
         setStatusLed(OFF);
     }
+}
+
+void checkSirene() {
+    long currentMillis = millis();
+    int interval = 20000;
+
+    if (currentMillis - currentStateEnteredTime >= interval) { // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
+        digitalWrite(alarmSiren, HIGH);
+    } else {
+        digitalWrite(alarmSiren, LOW);
+    }    
 }
 
 boolean isDoorReadyForClosing() {
