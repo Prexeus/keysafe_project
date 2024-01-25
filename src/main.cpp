@@ -337,7 +337,7 @@ void ready() {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
-    } else if (keyNumberVar != 0) {       
+    } else if (keyNumberVar != 0) {
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
@@ -572,7 +572,7 @@ void loggedInKeySearch() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {           // TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
+    } else if (keyNumberVar != 0) {           
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
