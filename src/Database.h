@@ -62,11 +62,13 @@ class Database {
         const char* employeeName = strtok(NULL, ";");
         boolean employeeKeyPermissions[keySlotCount];
         for (int i = 0; i < keySlotCount; i++) {
-            employeeKeyPermissions[i] = atoi(strtok(NULL, ";"));
+            const char* permissionStr = strtok(NULL, ";");
+            employeeKeyPermissions[i] = atoi(permissionStr);
         }
         EmployeeData employeeData = {
             .name = employeeName,
-            .employeeKeyPermissions = employeeKeyPermissions};
+            .employeeKeyPermissions = {0}};
+        memcpy(employeeData.employeeKeyPermissions, employeeKeyPermissions, keySlotCount);
         employeeMap.insert(atoi(employeeId), employeeData);
     }
 
@@ -74,7 +76,7 @@ class Database {
      * @brief Reads the content of the SD card file and returns it as a string.
      *
      * @param fileName The name of the file to read
-     * @return char* The content of the file as a string
+     * @return char* The content of the file as a string or an empty char array if the file couldn't be opened
      */
     char* getSdString(const char* fileName) {
         File file = SD.open(fileName);
@@ -85,10 +87,12 @@ class Database {
             fileContent[fileSize] = '\0';  // Add null terminator to the end of the string
             file.close();
             return fileContent;
+        } else {
+            return new char[1]{0};  // Return empty char array
         }
     }
 
-    // TODO: Uncomment and complete the implementation
+    //  Uncomment and complete the implementation
     /*
     String getFormattedTime(DateTime now) {
         return String(now.minute(), DEC) + ":" +

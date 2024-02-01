@@ -89,6 +89,29 @@ unsigned long lastKeyPressTime = 0;
 const unsigned long resetTimeout = 5000;  // Zeitlimit für die Eingabe in Millisekunden (hier 5 Sekunden)
 int keyNumberVar = 0;                     // Globale Variable für die Zahlenkombination des Keypads
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// state deklarations:
+typedef enum State {
+    STARTING,
+    INACTIVE,
+
+    READY,
+
+    LOGGED_IN,
+
+    LOGGED_IN_KEY_RETURN,
+
+    GUEST_KEY_RETURN,
+    GUEST_WAITING,
+
+    WRONG_KEY_EXCHANGE,
+
+    LOGGED_IN_KEY_SEARCH,
+    GUEST_KEY_SEARCH
+};
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // global variables:
 State state = STARTING;
@@ -110,7 +133,8 @@ long currentEmployeeId;
 
 unsigned long currentStateEnteredTime;
 
-//Deklaration Funktionen
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// function declarations:
 void changeStateTo(State newState);
 void initiateInactive();
 void inactive();
@@ -149,28 +173,6 @@ int getTakenKey();
 void updateKeyLedsAndLocks();
 void updateNewIsKeyPresentArray();
 
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// state deklarations:
-typedef enum State {
-    STARTING,
-    INACTIVE,
-
-    READY,
-
-    LOGGED_IN,
-
-    LOGGED_IN_KEY_RETURN,
-
-    GUEST_KEY_RETURN,
-    GUEST_WAITING,
-
-    WRONG_KEY_EXCHANGE,
-
-    LOGGED_IN_KEY_SEARCH,
-    GUEST_KEY_SEARCH
-};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // setup:
