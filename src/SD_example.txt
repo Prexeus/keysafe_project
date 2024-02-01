@@ -1,8 +1,6 @@
 #include <SD.h>
 
-
-#define CS 10
-#define CD 9
+#define CS 53
 
 void writeLog();
 void readLog();
@@ -13,16 +11,6 @@ void setup() {
     Serial.begin(9600);
 
     pinMode(CS, OUTPUT);
-    pinMode(CD, INPUT);
-
-    bool cardPresent = digitalRead(CD);
-
-    if (!cardPresent) {
-        Serial.print("No SD card found! Insert a card to proceed...");
-        while (!cardPresent)
-            cardPresent = digitalRead(CD);
-        Serial.println("OK!");
-    }
 
     if (!SD.begin(CS)) {
         Serial.println("Couldn't initialize SD card reader!");
@@ -48,6 +36,7 @@ void setup() {
 }
 
 void loop() {
+    delay(5000);
     writeLog();
 
     if (SD.exists("log.txt"))

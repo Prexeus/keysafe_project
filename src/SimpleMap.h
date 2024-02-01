@@ -1,7 +1,8 @@
 template <typename K, typename V, size_t Capacity>
 #include <Arduino.h>
+#include <String.h>
 class SimpleMap {
-private:
+   private:
     struct Node {
         K key;
         V value;
@@ -12,7 +13,7 @@ private:
     Node* head;
     size_t count;
 
-public:
+   public:
     SimpleMap() : head(nullptr), count(0) {}
 
     ~SimpleMap() {
@@ -116,16 +117,4 @@ public:
     bool isEmpty() const {
         return count == 0;
     }
-    
-    /*
-    void print() const {
-        Node* current = head;
-        while (current != nullptr) {
-            Serial.print(current->key);
-            Serial.print(" -> ");
-            Serial.println(current->value);
-            current = current->next;
-        }
-    }
-    */
 };

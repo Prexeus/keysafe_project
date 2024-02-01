@@ -1,3 +1,11 @@
+/**
+ * @file Database.h
+ * @brief Definition of the Database class for managing key and employee data.
+ */
+
+#ifndef DATABASE_H
+#define DATABASE_H
+
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
@@ -8,32 +16,48 @@
 static const int keySlotCount = 50;
 static const int maxEmployeeCount = 60;
 
+/**
+ * @brief Structure to represent employee data.
+ */
 struct EmployeeData {
     const char* name;
     boolean employeeKeyPermissions[keySlotCount];
 };
 
+/**
+ * @brief Structure to represent unlogged changes to keys.
+ */
 struct UnloggedKeyChange {
-    long keyId;
-    boolean isPresent;
-    long employeeId;
+    long keyId;      /**< The ID of the key. */
+    boolean isPresent; /**< Indicates whether the key is present. */
+    long employeeId; /**< The ID of the employee. */
 };
 
+/**
+ * @brief Class for managing key and employee data, aswell as SD-card handling.
+ */
 class Database {
-   private:
+private:
     static const int maxRowCount = 70;
-    SimpleMap<long, int, keySlotCount> keyMap;
-    SimpleMap<long, EmployeeData, maxEmployeeCount> employeeMap;
+    SimpleMap<long, int, keySlotCount> keyMap; /**< Map for keys. */
+    SimpleMap<long, EmployeeData, maxEmployeeCount> employeeMap; /**< Map for employee data. */
 
     /**
      * @brief Splits the given string into rows and returns a queue of row strings.
      *
-     * @param string The string to be split into rows
-     * @return SimpleQueue<const char*, maxRowCount> A queue of row strings
+     * @param string The string to be split into rows.
+     * @param skipHeader Flag to skip the first row (header) of the CSV.
+     * @return SimpleQueue<const char*, maxRowCount> A queue of row strings.
      */
-    SimpleQueue<const char*, maxRowCount> getRowQueue(char string[]) {
+    SimpleQueue<const char*, maxRowCount> getRowQueue(char string[], bool skipHeader = true) {
         SimpleQueue<const char*, maxRowCount> resultQueue;
         const char* rowString = strtok(string, "\n");
+
+        // Skip header if specified
+        if (skipHeader) {
+            rowString = strtok(NULL, "\n");
+        }
+
         while (rowString != NULL) {
             resultQueue.push(rowString);
             rowString = strtok(NULL, "\n");
@@ -44,18 +68,18 @@ class Database {
     /**
      * @brief Inserts key data into the key map.
      *
-     * @param rowString The row string containing key data
+     * @param rowString The row string containing key data.
      */
     void insertInKeyMap(const char* rowString) {
         const char* keyId = strtok((char*)rowString, ";");
-        const char* keyNumber = strtok(NULL, ";");  // TODO check if const char* keyNumber = strtok((char*)rowString, ";");
+        const char* keyNumber = strtok(NULL, ";");
         keyMap.insert(atoi(keyId), atoi(keyNumber));
     }
 
     /**
      * @brief Inserts employee data into the employee map.
      *
-     * @param rowString The row string containing employee data
+     * @param rowString The row string containing employee data.
      */
     void insertInEmployeeMap(const char* rowString) {
         const char* employeeId = strtok((char*)rowString, ";");
@@ -75,8 +99,8 @@ class Database {
     /**
      * @brief Reads the content of the SD card file and returns it as a string.
      *
-     * @param fileName The name of the file to read
-     * @return char* The content of the file as a string or an empty char array if the file couldn't be opened
+     * @param fileName The name of the file to read.
+     * @return char* The content of the file as a string or an empty char array if the file couldn't be opened.
      */
     char* getSdString(const char* fileName) {
         File file = SD.open(fileName);
@@ -104,6 +128,11 @@ class Database {
     */
 
    public:
+   /**
+     * @brief Constructor for the Database class.
+     * 
+     * @param sdCard The SD card object for data source.
+     */
     Database(SDClass sdCard) {
         char* keyInputString = getSdString("keyData.csv");
         SimpleQueue<const char*, maxRowCount> keyQueue = getRowQueue(keyInputString);
@@ -124,21 +153,27 @@ class Database {
      * @brief Prints the content of the key map.
      */
     void printKeyMap() {
-        //keyMap.print(); TODO
+        Serial.println("Key map:");
+        for (int i = 0; i < keySlotCount; i++) {
+            Serial.println("Key number: " + String(i) + ", key id: " + String(keyMap.get(i)));
+        }
     }
 
     /**
      * @brief Prints the content of the employee map.
      */
     void printEmployeeMap() {
-        //employeeMap.print(); TODO
+        Serial.println("Employee map:");
+        for (int i = 0; i < maxEmployeeCount; i++) {
+            Serial.println("Employee id: " + String(i) + ", employee name: " + String(employeeMap.get(i).name));
+        }
     }
 
     /**
      * @brief Checks if the given id is a registered key.
      *
-     * @param id The id to check
-     * @return true if the id is a registered key
+     * @param id The id to check.
+     * @return true if the id is a registered key.
      */
     boolean isIdKey(long id) {
         return keyMap.containsKey(id);
@@ -147,8 +182,8 @@ class Database {
     /**
      * @brief Checks if the given id is a registered employee.
      *
-     * @param id The id to check
-     * @return true if the id is a registered employee
+     * @param id The id to check.
+     * @return true if the id is a registered employee.
      */
     boolean isIdEmployee(long id) {
         return employeeMap.containsKey(id);
@@ -157,8 +192,8 @@ class Database {
     /**
      * @brief Returns the keyNumber of the given keyId.
      *
-     * @param id The keyId
-     * @return int The keyNumber
+     * @param id The keyId.
+     * @return int The keyNumber.
      */
     int getKeyNumber(long id) {
         return keyMap.get(id);
@@ -167,18 +202,18 @@ class Database {
     /**
      * @brief Returns the name of the given employeeId.
      *
-     * @param id The employeeId
-     * @return const char* The employeeName
+     * @param id The employeeId.
+     * @return const char* The employeeName.
      */
     const char* getEmployeeName(long id) {
         return employeeMap.get(id).name;
     }
 
-    /**
+   /**
      * @brief Returns the keyPermissionArray of the given employeeId.
      *
-     * @param id The employeeId
-     * @return boolean* The keyPermissionArray
+     * @param id The employeeId.
+     * @return boolean* The keyPermissionArray.
      */
     boolean* getEmployeeKeyPermissions(long id) {
         return employeeMap.get(id).employeeKeyPermissions;
@@ -187,8 +222,8 @@ class Database {
     /**
      * @brief Logs the changes made to key lending and returns.
      *
-     * @param unloggedChanges A queue of unlogged key changes
-     * @param keyLendingArray An array containing information about key lending
+     * @param unloggedChanges A queue of unlogged key changes.
+     * @param keyLendingArray An array containing information about key lending.
      * //TODO @param
      */
     void logChanges(SimpleQueue<int, 30> unloggedChanges, long* keyLendingArray /*, //TODO Uhrzeit*/) {
@@ -213,3 +248,5 @@ class Database {
         }
     }
 };
+
+#endif  // DATABASE_H

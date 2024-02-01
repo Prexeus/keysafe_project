@@ -36,8 +36,7 @@ MFRC522 rfidReader(SS_PIN, RST_PIN);
 
 // SD-Card Reader
 Database* database;
-#define sdOut 4
-#define sdIn 5
+#define sdOut 53
 
 // Status-LED
 #define statusLedRed 9     // Pin für den roten Kanal
@@ -198,13 +197,6 @@ void setup() {
 
     // SD-Card Reader initialisation
     pinMode(sdOut, OUTPUT);
-    pinMode(sdIn, INPUT);
-    if (!digitalRead(sdIn)) {
-        Serial.print("No SD card found! Insert a card to proceed...");
-        while (!digitalRead(sdIn)) {
-        }
-        Serial.println("OK!");
-    }
     if (!SD.begin(sdOut)) {
         Serial.println("Couldn't initialize SD card reader!");
         while (true) {
