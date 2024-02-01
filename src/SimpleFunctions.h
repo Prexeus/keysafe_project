@@ -1,7 +1,5 @@
 #include <Arduino.h>
 
-
-
 /**
  * @brief Finds the index of the first not-equal element in two boolean arrays.
  *
