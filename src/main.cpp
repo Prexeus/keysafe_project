@@ -393,16 +393,14 @@ void initiateLoggedIn() {
             if (isEmployeePermissionedArray[i]) {
                 redKeyLeds[i] = false;
                 greenKeyLeds[i] = true;
-                openedKeyLocks[i] = true;
             } else {
                 redKeyLeds[i] = true;
                 greenKeyLeds[i] = false;
-                openedKeyLocks[i] = false;
+
             }
         } else {
             redKeyLeds[i] = false;
             greenKeyLeds[i] = false;
-            openedKeyLocks[i] = false;
         }
     }
     updateKeyLedsAndLocks();
@@ -450,10 +448,8 @@ void initiateLoggedInKeyReturn() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
     redKeyLeds[currentKeyNumber] = true;
-    greenKeyLeds[currentKeyNumber] = false;
     openedKeyLocks[currentKeyNumber] = true;
     updateKeyLedsAndLocks();
     openDoorLock();
@@ -472,6 +468,7 @@ void loggedInKeyReturn() {
     if (newIsKeyPresentArray[currentKeyNumber] == true) {
         isKeyPresentArray[currentKeyNumber] = true;
         keyLendingArray[currentKeyNumber] = 0;
+        openedKeyLocks[currentKeyNumber] = false;
         changeStateTo(LOGGED_IN);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -483,7 +480,6 @@ void initiateGuestKeyReturn() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
     redKeyLeds[currentKeyNumber] = true;
     greenKeyLeds[currentKeyNumber] = false;
@@ -504,6 +500,7 @@ void guestKeyReturn() {
     if (newIsKeyPresentArray[currentKeyNumber] == true) {
         isKeyPresentArray[currentKeyNumber] = true;
         keyLendingArray[currentKeyNumber] = 0;
+        openedKeyLocks[currentKeyNumber] = false;
         changeStateTo(GUEST_WAITING);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -515,7 +512,6 @@ void initiateGuestWaiting() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
     updateKeyLedsAndLocks();
 
@@ -552,11 +548,10 @@ void initiateWrongKeyExchange() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
     redKeyLeds[currentKeyNumber] = true;
     greenKeyLeds[currentKeyNumber] = false;
-    openedKeyLocks[currentKeyNumber] = false;
+    openedKeyLocks[currentKeyNumber] = true;
     updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Entnehmen Sie den");
@@ -573,6 +568,7 @@ void wrongKeyExchange() {
     if (newIsKeyPresentArray[currentKeyNumber] == false) {
         isKeyPresentArray[currentKeyNumber] = false;
         keyLendingArray[currentKeyNumber] = keyLendingArray[database->getKeyNumber(currentKeyId)];
+        openedKeyLocks[currentKeyNumber] = false;
         changeStateTo(GUEST_WAITING);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -582,14 +578,35 @@ void wrongKeyExchange() {
 void initiateLoggedInKeySearch() {
     setStatusLed(GREEN);
     currentKeyNumber = keyNumberVar;
-    sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
-    strcpy(textRow[1], "liegt bei");
-    strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
-    sprintf(textRow[3], "yy");
+    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+
+    if (isKeyPresentArray[currentKeyNumber]) {  // Ist Schlüssel vorhanden?
+        if (isEmployeePermissionedArray[currentKeyNumber]) {        // Ist Schlüssel für Mitarbeiter freigegeben?
+            strcpy(textRow[0], "Schluessel" + currentKeyNumber);
+            strcpy(textRow[1], "kann entnommen");
+            strcpy(textRow[2], "werden");
+            sprintf(textRow[3], "");
+
+            openedKeyLocks[currentKeyNumber] = true;
+
+        } else {                            // Schlüssel ist nicht für Mitarbeiter freigegeben
+            strcpy(textRow[0], "Keine Berechtigung");
+            strcpy(textRow[1], "für Schlüssel");
+            strcpy(textRow[2], "" + currentKeyNumber);
+            sprintf(textRow[3], "");
+        }
+
+    } else {      // Schlüssel ist nicht vorhanden
+        sprintf(textRow[0], "Schluessel" + currentKeyNumber);
+        strcpy(textRow[1], "liegt bei");
+        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
+        sprintf(textRow[3], "");
+    }
+    updateKeyLedsAndLocks();
+
 }
 void loggedInKeySearch() {
     // state repetition:
-    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
     static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
 
@@ -600,6 +617,7 @@ void loggedInKeySearch() {
     if (takenKey != -1) {            // got Key taken?
         isKeyPresentArray[takenKey] = 0;
         keyLendingArray[takenKey] = currentEmployeeId;
+        openedKeyLocks[currentKeyNumber] = false;
         changeStateTo(LOGGED_IN);
     } else if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
@@ -624,14 +642,14 @@ void loggedInKeySearch() {
 void initiateGuestKeySearch() {
     setStatusLed(RED);
     currentKeyNumber = keyNumberVar;
-    sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
+    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
+    sprintf(textRow[0], "Schluessel " + currentKeyNumber);
     strcpy(textRow[1], "liegt bei");
     strcpy(textRow[2], "Mitarbeiter");
     sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
 }
 void guestKeySearch() {
     // state repetition:
-    keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
     static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
     unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
 
@@ -811,7 +829,7 @@ char keypadReadout() {
                 lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
                 // Text für LCD Display
-                strcpy(textRow[0], "Suche Schluessel:");
+                strcpy(textRow[0], "Schluesselnummer:");
                 sprintf(textRow[1], "%c", firstKey);
                 strcpy(textRow[2], "");
                 strcpy(textRow[3], "");
@@ -821,7 +839,7 @@ char keypadReadout() {
                 keyNumber = (firstKey - '0') * 10 + (key - '0');  // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
 
                 // Text für LCD Display
-                strcpy(textRow[0], "Suche Schluessel:");
+                strcpy(textRow[0], "Schluesselnummer:");
                 sprintf(textRow[1], "%d", keyNumber);
                 strcpy(textRow[2], "");
                 strcpy(textRow[3], "");
