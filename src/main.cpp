@@ -12,7 +12,6 @@
 // #include "State.cpp"
 #include "Database.h"
 #include "SimpleFunctions.h"
-#include "SimpleQueue.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Pin-declarations & related variables:
@@ -875,7 +874,7 @@ int getTakenKey() {
 
 // TODO @Maxi neue Struktur der Schieberegister implementieren
 void updateKeyLedsAndLocks() {
-    for (int i = 0; i <= keySlotCount; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         digitalWrite(latchPinSerialOutSr, LOW);
         digitalWrite(dataPinRedKeyLedSr, redKeyLeds[i]);
         digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
@@ -890,7 +889,7 @@ void updateKeyLedsAndLocks() {
 
 void updateNewIsKeyPresentArray() {
     digitalWrite(latchPinKeyReedSr, LOW);
-    for (int i = 0; i <= keySlotCount; i++) {
+    for (int i = 0; i < keySlotCount; i++) {
         digitalWrite(clockPinKeyReedSr, HIGH);
         // TODO TEST if mirrored
         newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);

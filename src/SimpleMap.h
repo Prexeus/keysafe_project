@@ -1,6 +1,7 @@
-template <typename K, typename V>
-class SimpleMap {  // # include <map> from STL
-   private:
+template <typename K, typename V, size_t Capacity>
+#include <Arduino.h>
+class SimpleMap {
+private:
     struct Node {
         K key;
         V value;
@@ -9,9 +10,10 @@ class SimpleMap {  // # include <map> from STL
     };
 
     Node* head;
+    size_t count;
 
-   public:
-    SimpleMap() : head(nullptr) {}
+public:
+    SimpleMap() : head(nullptr), count(0) {}
 
     ~SimpleMap() {
         clear();
@@ -30,9 +32,15 @@ class SimpleMap {  // # include <map> from STL
     }
 
     void insert(const K& key, const V& value) {
+        if (count >= Capacity) {
+            // Capacity exceeded
+            return;
+        }
+
         Node* newNode = new Node(key, value);
         newNode->next = head;
         head = newNode;
+        count++;
     }
 
     bool find(const K& key, V& value) const {
@@ -67,6 +75,7 @@ class SimpleMap {  // # include <map> from STL
         }
 
         delete current;
+        count--;
     }
 
     void clear() {
@@ -75,6 +84,7 @@ class SimpleMap {  // # include <map> from STL
             head = head->next;
             delete temp;
         }
+        count = 0;
     }
 
     bool containsKey(const K& key) const {
@@ -100,19 +110,14 @@ class SimpleMap {  // # include <map> from STL
     }
 
     size_t size() const {
-        size_t count = 0;
-        Node* current = head;
-        while (current != nullptr) {
-            count++;
-            current = current->next;
-        }
         return count;
     }
 
     bool isEmpty() const {
-        return head == nullptr;
+        return count == 0;
     }
-
+    
+    /*
     void print() const {
         Node* current = head;
         while (current != nullptr) {
@@ -122,69 +127,5 @@ class SimpleMap {  // # include <map> from STL
             current = current->next;
         }
     }
-
-    // Function to get a vector of all keys in the map
-    std::vector<K> getKeys() const {
-        std::vector<K> keys;
-        Node* current = head;
-        while (current != nullptr) {
-            keys.push_back(current->key);
-            current = current->next;
-        }
-        return keys;
-    }
-
-    // Function to get a vector of all values in the map
-    std::vector<V> getValues() const {
-        std::vector<V> values;
-        Node* current = head;
-        while (current != nullptr) {
-            values.push_back(current->value);
-            current = current->next;
-        }
-        return values;
-    }
-
-    // Function to update the value associated with a key
-    void update(const K& key, const V& value) {
-        Node* current = head;
-        while (current != nullptr) {
-            if (current->key == key) {
-                current->value = value;
-                return;
-            }
-            current = current->next;
-        }
-    }
-
-    // Function to copy the contents of another SimpleMap into this map
-    void merge(const SimpleMap<K, V>& otherMap) {
-        Node* otherCurrent = otherMap.head;
-        while (otherCurrent != nullptr) {
-            insert(otherCurrent->key, otherCurrent->value);
-            otherCurrent = otherCurrent->next;
-        }
-    }
-
-    // Function to remove all nodes with a specific value
-    void removeAllWithValue(const V& value) {
-        Node* current = head;
-        Node* prev = nullptr;
-
-        while (current != nullptr) {
-            if (current->value == value) {
-                if (prev == nullptr) {
-                    head = current->next;
-                } else {
-                    prev->next = current->next;
-                }
-                Node* temp = current;
-                current = current->next;
-                delete temp;
-            } else {
-                prev = current;
-                current = current->next;
-            }
-        }
-    }
+    */
 };

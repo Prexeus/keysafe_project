@@ -6,6 +6,7 @@
 #include "SimpleQueue.h"
 
 static const int keySlotCount = 50;
+static const int maxEmployeeCount = 60;
 
 struct EmployeeData {
     const char* name;
@@ -21,8 +22,8 @@ struct UnloggedKeyChange {
 class Database {
    private:
     static const int maxRowCount = 70;
-    SimpleMap<long, int> keyMap;
-    SimpleMap<long, EmployeeData> employeeMap;
+    SimpleMap<long, int, keySlotCount> keyMap;
+    SimpleMap<long, EmployeeData, maxEmployeeCount> employeeMap;
 
     /**
      * @brief Splits the given string into rows and returns a queue of row strings.
@@ -123,14 +124,14 @@ class Database {
      * @brief Prints the content of the key map.
      */
     void printKeyMap() {
-        keyMap.print();
+        //keyMap.print(); TODO
     }
 
     /**
      * @brief Prints the content of the employee map.
      */
     void printEmployeeMap() {
-        employeeMap.print();
+        //employeeMap.print(); TODO
     }
 
     /**
