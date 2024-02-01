@@ -27,7 +27,7 @@ class Database {
 
     /**
      * @brief Splits the given string into rows and returns a queue of row strings.
-     * 
+     *
      * @param string The string to be split into rows
      * @return SimpleQueue<const char*, maxRowCount> A queue of row strings
      */
@@ -43,37 +43,36 @@ class Database {
 
     /**
      * @brief Inserts key data into the key map.
-     * 
+     *
      * @param rowString The row string containing key data
      */
     void insertInKeyMap(const char* rowString) {
         const char* keyId = strtok((char*)rowString, ";");
-        const char* keyNumber = strtok(NULL, ";");          // TODO check if const char* keyNumber = strtok((char*)rowString, ";");
+        const char* keyNumber = strtok(NULL, ";");  // TODO check if const char* keyNumber = strtok((char*)rowString, ";");
         keyMap.insert(atoi(keyId), atoi(keyNumber));
     }
 
     /**
      * @brief Inserts employee data into the employee map.
-     * 
+     *
      * @param rowString The row string containing employee data
      */
     void insertInEmployeeMap(const char* rowString) {
         const char* employeeId = strtok((char*)rowString, ";");
         const char* employeeName = strtok(NULL, ";");
         boolean employeeKeyPermissions[keySlotCount];
-        for(int i = 0; i < keySlotCount; i++) {
+        for (int i = 0; i < keySlotCount; i++) {
             employeeKeyPermissions[i] = atoi(strtok(NULL, ";"));
         }
         EmployeeData employeeData = {
             .name = employeeName,
-            .employeeKeyPermissions = employeeKeyPermissions
-        };
+            .employeeKeyPermissions = employeeKeyPermissions};
         employeeMap.insert(atoi(employeeId), employeeData);
     }
 
     /**
      * @brief Reads the content of the SD card file and returns it as a string.
-     * 
+     *
      * @param fileName The name of the file to read
      * @return char* The content of the file as a string
      */
@@ -133,7 +132,7 @@ class Database {
 
     /**
      * @brief Checks if the given id is a registered key.
-     * 
+     *
      * @param id The id to check
      * @return true if the id is a registered key
      */
@@ -143,7 +142,7 @@ class Database {
 
     /**
      * @brief Checks if the given id is a registered employee.
-     * 
+     *
      * @param id The id to check
      * @return true if the id is a registered employee
      */
@@ -153,7 +152,7 @@ class Database {
 
     /**
      * @brief Returns the keyNumber of the given keyId.
-     * 
+     *
      * @param id The keyId
      * @return int The keyNumber
      */
@@ -163,7 +162,7 @@ class Database {
 
     /**
      * @brief Returns the name of the given employeeId.
-     * 
+     *
      * @param id The employeeId
      * @return const char* The employeeName
      */
@@ -173,7 +172,7 @@ class Database {
 
     /**
      * @brief Returns the keyPermissionArray of the given employeeId.
-     * 
+     *
      * @param id The employeeId
      * @return boolean* The keyPermissionArray
      */
@@ -183,12 +182,12 @@ class Database {
 
     /**
      * @brief Logs the changes made to key lending and returns.
-     * 
+     *
      * @param unloggedChanges A queue of unlogged key changes
      * @param keyLendingArray An array containing information about key lending
-     * //TODO @param 
+     * //TODO @param
      */
-    void logChanges(SimpleQueue<int, 30> unloggedChanges, long* keyLendingArray/*, //TODO Uhrzeit*/) {
+    void logChanges(SimpleQueue<int, 30> unloggedChanges, long* keyLendingArray /*, //TODO Uhrzeit*/) {
         if (!unloggedChanges.isEmpty()) {
             File protocol = SD.open("protocol.csv");  // allows writing and reading
             if (protocol) {
@@ -197,18 +196,10 @@ class Database {
                     long employeeId = keyLendingArray[keyNumber];
                     if (employeeId != 0) {  // TODO test writing
                         protocol.println(
-                            /*TODO timer +*/ ";" 
-                            + String(keyNumber) + ";" 
-                            + employeeMap.get(employeeId).name  + ";" 
-                            + "lending"
-                        );
+                            /*TODO timer +*/ ";" + String(keyNumber) + ";" + employeeMap.get(employeeId).name + ";" + "lending");
                     } else {
                         protocol.println(
-                            /*TODO timer +*/ ";" 
-                            + String(keyNumber) + ";" 
-                            + ";" 
-                            + "return"
-                        );
+                            /*TODO timer +*/ ";" + String(keyNumber) + ";" + ";" + "return");
                     }
                 } while (!unloggedChanges.isEmpty());
             } else {

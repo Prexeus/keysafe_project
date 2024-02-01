@@ -397,7 +397,7 @@ void loggedIn() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {          
+    } else if (keyNumberVar != 0) {
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -667,7 +667,7 @@ void blinkStatusLed(LedColor color) {
 
 void checkSirene() {
     int interval = 20000;
-    if (state != READY) {   // Wenn der Status "READY" ist, wird die Sirene nicht aktiviert
+    if (state != READY) {                                      // Wenn der Status "READY" ist, wird die Sirene nicht aktiviert
         if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
             digitalWrite(alarmSiren, HIGH);
         } else {
