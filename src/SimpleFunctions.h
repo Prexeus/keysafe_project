@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+
+
 /**
  * @brief Finds the index of the first not-equal element in two boolean arrays.
  *
@@ -11,7 +13,7 @@
  * @return Index of the first not-equal element, or -1 if arrays are equal.
  */
 int getNotEqualIndex(bool* array1, bool* array2) {
-    for (int i = 0; i < sizeof(array1); i++) {
+    for (int i = 0; i < sizeof(&array1); i++) {
         if (array1[i] != array2[i]) {
             return i;
         }
@@ -20,7 +22,7 @@ int getNotEqualIndex(bool* array1, bool* array2) {
 };
 
 boolean equals(boolean* array1, boolean* array2) {
-    for (int i = 0; i < sizeof(array1); i++) {
+    for (int i = 0; i < sizeof(&array1); i++) {
         if (array1[i] != array2[i]) {
             return false;
         }

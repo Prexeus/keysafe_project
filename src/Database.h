@@ -2,7 +2,6 @@
 #include <SD.h>
 #include <SPI.h>
 
-#include "SimpleFunctions.h"
 #include "SimpleMap.h"
 #include "SimpleQueue.h"
 
