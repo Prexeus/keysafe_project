@@ -4,6 +4,9 @@
 #define CS 10
 #define CD 9
 
+void writeLog();
+void readLog();
+
 File dataFile;
 
 void setup() {
