@@ -165,7 +165,7 @@ class Database {
      * @brief Returns the name of the given employeeId.
      * 
      * @param id The employeeId
-     * @return String The employeeName
+     * @return const char* The employeeName
      */
     const char* getEmployeeName(long id) {
         return employeeMap.get(id).name;
@@ -188,7 +188,7 @@ class Database {
      * @param keyLendingArray An array containing information about key lending
      * //TODO @param 
      */
-    void logChanges(SimpleQueue<int, 12> unloggedChanges, long* keyLendingArray/*, //TODO Uhrzeit*/) {
+    void logChanges(SimpleQueue<int, 30> unloggedChanges, long* keyLendingArray/*, //TODO Uhrzeit*/) {
         if (!unloggedChanges.isEmpty()) {
             File protocol = SD.open("protocol.csv");  // allows writing and reading
             if (protocol) {

@@ -93,7 +93,7 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 // global variables:
 State state = STARTING;
 
-SimpleQueue<int, 12> unloggedChanges;
+SimpleQueue<int, 30> unloggedChanges;
 long keyLendingArray[keySlotCount];  // saves the employeeId if the key is lent, else 0
 boolean isKeyPresentArray[keySlotCount];
 boolean newIsKeyPresentArray[keySlotCount];
@@ -572,7 +572,7 @@ void loggedInKeySearch() {
                 changeStateTo(LOGGED_IN_KEY_RETURN);
             }
         }
-    } else if (keyNumberVar != 0) {           // TODO fix: Wechsel sollte nur stattfinden, wenn die eingegebene Zahl vollständig ist / bestätigt wurde
+    } else if (keyNumberVar != 0) {
         changeStateTo(LOGGED_IN_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in "loggedInKeySearch"
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -670,6 +670,8 @@ void checkSirene() {
     if (state != READY) {   // Wenn der Status "READY" ist, wird die Sirene nicht aktiviert
         if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
             digitalWrite(alarmSiren, HIGH);
+        } else {
+            digitalWrite(alarmSiren, LOW);
         }
     } else {
         digitalWrite(alarmSiren, LOW);
@@ -836,10 +838,10 @@ void updateKeyLedsAndLocks() {
         digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
         digitalWrite(dataPinKeyLockSr, openedKeyLocks[i]);
         digitalWrite(clockPinSerialOutSr, HIGH);
-        delay(5);  // TODO TEST if needed
+        delay(1);  // TODO TEST if needed
         digitalWrite(clockPinSerialOutSr, LOW);
         digitalWrite(latchPinSerialOutSr, HIGH);
-        delay(5);  // TODO TEST if needed
+        delay(1);  // TODO TEST if needed
     }
 }
 
@@ -850,7 +852,7 @@ void updateNewIsKeyPresentArray() {
         // TODO TEST if mirrored
         newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);
         digitalWrite(clockPinKeyReedSr, LOW);
-        delay(5);  // TODO TEST if needed
+        delay(1);  // TODO TEST if needed
     }
     digitalWrite(latchPinKeyReedSr, HIGH);
 }
