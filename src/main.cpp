@@ -36,7 +36,7 @@ char lastTextRow[4][178];                                  //{{0},{0},{0},{0}}; 
 MFRC522 rfidReader(SS_PIN, RST_PIN);
 
 // SD-Card Reader
-Database database;
+Database* database;
 #define sdOut 4
 #define sdIn 5
 
@@ -45,7 +45,7 @@ Database database;
 #define statusLedGreen 10  // Pin für den grünen Kanal
 #define statusLedBlue 11   // Pin für den blauen Kanal
 
-typedef enum LedColor {
+enum LedColor {
     RED,
     GREEN,
     BLUE,
@@ -92,7 +92,7 @@ int keyNumberVar = 0;                     // Globale Variable für die Zahlenkom
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state deklarations:
-typedef enum State {
+enum State {
     STARTING,
     INACTIVE,
 
@@ -211,7 +211,7 @@ void setup() {
         while (true) {
         }
     }
-    database = Database(SD);
+    database = new Database(SD);
 
     // Shift-Registers
     pinMode(clockPinSerialOutSr, OUTPUT);
@@ -348,7 +348,7 @@ void inactive() {
 void initiateReady() {
     setStatusLed(RED);
     closeDoorLock();
-    database.logChanges(unloggedChanges, keyLendingArray);
+    database->logChanges(unloggedChanges, keyLendingArray);
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
@@ -370,7 +370,7 @@ void ready() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             currentKeyId = rfidId;
-            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
                 changeStateTo(WRONG_KEY_EXCHANGE);
             } else {
@@ -388,7 +388,7 @@ void ready() {
 void initiateLoggedIn() {
     setStatusLed(GREEN);
     openDoorLock();
-    isEmployeePermissionedArray = database.getEmployeeKeyPermissions(currentEmployeeId);
+    isEmployeePermissionedArray = database->getEmployeeKeyPermissions(currentEmployeeId);
     for (int i = 0; i < keySlotCount; i++) {
         if (isKeyPresentArray[i]) {
             if (isEmployeePermissionedArray[i]) {
@@ -433,7 +433,7 @@ void loggedIn() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
             currentKeyId = rfidId;
-            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
                 changeStateTo(WRONG_KEY_EXCHANGE);
             } else {
@@ -533,7 +533,7 @@ void guestWaiting() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             currentKeyId = rfidId;
-            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
                 changeStateTo(WRONG_KEY_EXCHANGE);
             } else {
@@ -573,7 +573,7 @@ void wrongKeyExchange() {
     updateNewIsKeyPresentArray();
     if (newIsKeyPresentArray[currentKeyNumber] == false) {
         isKeyPresentArray[currentKeyNumber] = false;
-        keyLendingArray[currentKeyNumber] = keyLendingArray[database.getKeyNumber(currentKeyId)];
+        keyLendingArray[currentKeyNumber] = keyLendingArray[database->getKeyNumber(currentKeyId)];
         changeStateTo(GUEST_WAITING);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -585,7 +585,7 @@ void initiateLoggedInKeySearch() {
     currentKeyNumber = keyNumberVar;
     sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
     strcpy(textRow[1], "liegt bei");
-    strcpy(textRow[2], database.getEmployeeName(keyLendingArray[currentKeyNumber]));
+    strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
     sprintf(textRow[3], "yy");
 }
 void loggedInKeySearch() {
@@ -608,7 +608,7 @@ void loggedInKeySearch() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
             currentKeyId = rfidId;
-            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
                 changeStateTo(WRONG_KEY_EXCHANGE);
             } else {
@@ -628,7 +628,7 @@ void initiateGuestKeySearch() {
     sprintf(textRow[0], "Schluesselnummer " + currentKeyNumber);
     strcpy(textRow[1], "liegt bei");
     strcpy(textRow[2], "Mitarbeiter");
-    sprintf(textRow[3], database.getEmployeeName(keyLendingArray[currentKeyNumber]));
+    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
 }
 void guestKeySearch() {
     // state repetition:
@@ -643,7 +643,7 @@ void guestKeySearch() {
         long rfidId = getRfidId();
         if (isRfidKey(rfidId)) {
             currentKeyId = rfidId;
-            currentKeyNumber = database.getKeyNumber(currentKeyId);
+            currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
                 changeStateTo(WRONG_KEY_EXCHANGE);
             } else {
@@ -700,7 +700,7 @@ void setStatusLed(int red, int green, int blue) {
 }
 
 void blinkStatusLed(LedColor color) {
-    int blinkDuration = 500;  // in ms
+    unsigned int blinkDuration = 500;  // in ms
     if (millis() % (blinkDuration * 2) < blinkDuration) {
         setStatusLed(color);
     } else {
@@ -709,7 +709,7 @@ void blinkStatusLed(LedColor color) {
 }
 
 void checkSirene() {
-    int interval = 20000;
+    unsigned int interval = 20000;
     if (state != READY) {                                      // Wenn der Status "READY" ist, wird die Sirene nicht aktiviert
         if (millis() - currentStateEnteredTime >= interval) {  // Wenn seit 20 Sekunden der Status nicht gewechselt wurde, geht die Sirene an
             digitalWrite(alarmSiren, HIGH);
@@ -742,7 +742,7 @@ char charAt(char* text, int pos)
 {
     if (pos < ledLine)
         return ' ';  // scroll in
-    else if (pos >= ledLine && pos < ledLine + strlen(text))
+    else if (pos >= ledLine && pos < ledLine + int(strlen(text)))
         return text[pos - ledLine];  // scroll text
     else
         return ' ';  // scroll out
@@ -764,7 +764,7 @@ void taskText(char* text, byte line)
         strcpy(lastTextRow[line], text);
     }
     // Beim Wechsel der Textlänge kann der positionCounter des Textes beim Scrollen zu hoch sein und sich nicht mehr zurückstellen --> Dann würde der Text nicht angezeigt werden! --> Hier muss die Position  zurückgesetzt werden!
-    if (ledScrollDir[line] == true && positionCounter[line] > (strlen(text) + ledLine)) {  // für nach links scrollen
+    if (ledScrollDir[line] == true && positionCounter[line] > int(strlen(text) + ledLine)) {  // für nach links scrollen
         positionCounter[line] = 0;
     } else if (positionCounter[line] < 0) {  // für nach rechts scrollen
         positionCounter[line] = strlen(text) + ledLine - 1;
@@ -783,7 +783,7 @@ void taskText(char* text, byte line)
 
         if (ledScrollDir[line]) {
             positionCounter[line]++;
-            if (positionCounter[line] == strlen(text) + ledLine) positionCounter[line] = 0;
+            if (positionCounter[line] == int(strlen(text)) + ledLine) positionCounter[line] = 0;
         } else {
             positionCounter[line]--;
             if (positionCounter[line] < 0) positionCounter[line] = strlen(text) + ledLine - 1;
@@ -847,11 +847,11 @@ boolean isRfidPresented() {
 }
 
 boolean isRfidKey(long rfidId) {
-    return database.isIdKey(rfidId);
+    return database->isIdKey(rfidId);
 }
 
 boolean isRfidEmployee(long rfidId) {
-    return database.isIdEmployee(rfidId);
+    return database->isIdEmployee(rfidId);
 }
 
 long getRfidId() {
@@ -863,7 +863,7 @@ long getRfidId() {
 }
 
 boolean isKeyPresent(long rfidId) {
-    return false;  // database.isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
+    return false;  // database->isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
 }
 
 /**
