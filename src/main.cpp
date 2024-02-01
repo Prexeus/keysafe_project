@@ -110,6 +110,47 @@ long currentEmployeeId;
 
 unsigned long currentStateEnteredTime;
 
+//Deklaration Funktionen
+void changeStateTo(State newState);
+void initiateInactive();
+void inactive();
+void initiateReady();
+void ready();
+void initiateLoggedIn();
+void loggedIn();
+void initiateLoggedInKeyReturn();
+void loggedInKeyReturn();
+void initiateGuestKeyReturn();
+void guestKeyReturn();
+void initiateGuestWaiting();
+void guestWaiting();
+void initiateWrongKeyExchange();
+void wrongKeyExchange();
+void initiateLoggedInKeySearch();
+void loggedInKeySearch();
+void initiateGuestKeySearch();
+void guestKeySearch();
+void setStatusLed(LedColor color); 
+void setStatusLed(int red, int green, int blue);
+void blinkStatusLed(LedColor color);
+void checkSirene();
+boolean isDoorReadyForClosing();
+void openDoorLock();
+void closeDoorLock();
+char charAt(char* text, int pos);
+void taskText(char* text, byte line);
+char keypadReadout();
+boolean isRfidPresented();
+boolean isRfidKey(long rfidId);
+boolean isRfidEmployee(long rfidId);
+long getRfidId();
+boolean isKeyPresent(long rfidId);
+int getTakenKey();
+void updateKeyLedsAndLocks();
+void updateNewIsKeyPresentArray();
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // state deklarations:
 typedef enum State {
