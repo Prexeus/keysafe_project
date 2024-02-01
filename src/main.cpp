@@ -337,7 +337,7 @@ void ready() {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
-    } else if (keyNumberVar != 0) {       
+    } else if (keyNumberVar != 0) {
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
     }
 }
