@@ -182,10 +182,10 @@ void setup() {
     lcd.init();
     lcd.noBacklight();
     // Willkommenstext anzeigen
-    strcpy(textRow[0], "IFU Stuttgart");
-    strcpy(textRow[1], "Schlüsselausgabe");
-    strcpy(textRow[2], "2024 Version 1.0");
-    strcpy(textRow[3], "Tuer schliessen!");
+    strcpy(textRow[0], "IFU Stuttgart       ");
+    strcpy(textRow[1], "Schlüsselausgabe   ");
+    strcpy(textRow[2], "2024 Version 1.0    ");
+    strcpy(textRow[3], "Tuer schliessen!    ");
     // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays
     taskText(textRow[0], 0);
     taskText(textRow[1], 1);
@@ -322,10 +322,10 @@ void initiateInactive() {
     updateKeyLedsAndLocks();
     openDoorLock();  // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
 
-    strcpy(textRow[0], "Bitte Türe");
-    strcpy(textRow[1], "schliessen!");
-    strcpy(textRow[2], "");
-    strcpy(textRow[3], "");
+    strcpy(textRow[0], "Bitte Tuere        ");
+    strcpy(textRow[1], "schliessen!         ");
+    strcpy(textRow[2], "                    ");
+    strcpy(textRow[3], "                    ");
 }
 void inactive() {
     // state repetition:
@@ -348,10 +348,10 @@ void initiateReady() {
     }
     updateKeyLedsAndLocks();
 
-    strcpy(textRow[0], "Scannen Sie Ihren");
-    strcpy(textRow[1], "RFID-Chip oder");
-    strcpy(textRow[2], "einen");
-    strcpy(textRow[3], "Schlüsselanhänger.");
+    strcpy(textRow[0], "Scannen Sie Ihren   ");
+    strcpy(textRow[1], "RFID-Chip oder      ");
+    strcpy(textRow[2], "einen               ");
+    strcpy(textRow[3], "Schluessel          ");
 }
 void ready() {
     // state repetition:
@@ -398,10 +398,10 @@ void initiateLoggedIn() {
     }
     updateKeyLedsAndLocks();
 
-    strcpy(textRow[0], "Schluessel entnehmen");
-    strcpy(textRow[1], "oder zur Rueckgabe");
-    strcpy(textRow[2], "Schluesselband");
-    strcpy(textRow[3], "einscannen.");
+    strcpy(textRow[0], "Schluessel eingeben ");
+    strcpy(textRow[1], "u. entnehmen o. zur ");
+    strcpy(textRow[2], "Rueckgabe Schlues-  ");
+    strcpy(textRow[3], "sel einscannen      ");
 }
 void loggedIn() {
     // state repetition:
@@ -449,7 +449,7 @@ void initiateLoggedInKeyReturn() {
 
     strcpy(textRow[0], "Stecken Sie         ");
     strcpy(textRow[1], "den gescannten      ");
-    strcpy(textRow[2], "Schlüssel zurück.   ");
+    strcpy(textRow[2], "Schluessel zurück  ");
     strcpy(textRow[3], "                    ");
 }
 void loggedInKeyReturn() {
@@ -479,10 +479,10 @@ void initiateGuestKeyReturn() {
     openedKeyLocks[currentKeyNumber] = true;
     updateKeyLedsAndLocks();
 
-    strcpy(textRow[0], "Stecken Sie");
-    strcpy(textRow[1], "den gescannten");
-    strcpy(textRow[2], "Schlüssel zurück.");
-    strcpy(textRow[3], "");
+    strcpy(textRow[0], "Stecken Sie         ");
+    strcpy(textRow[1], "den gescannten      ");
+    strcpy(textRow[2], "Schluessel zurueck  ");
+    strcpy(textRow[3], "                    ");
 }
 void guestKeyReturn() {
     // state repetition:
@@ -508,9 +508,9 @@ void initiateGuestWaiting() {
     }
     updateKeyLedsAndLocks();
 
-    strcpy(textRow[0], "Vorgang");
+    strcpy(textRow[0], "Vorgang             ");
     strcpy(textRow[1], "abgeschlossen. Neuen");
-    strcpy(textRow[2], "Schluessel scannen");
+    strcpy(textRow[2], "Schluessel scannen  ");
     strcpy(textRow[3], "o. Tuere schliessen.");
 }
 void guestWaiting() {
@@ -547,10 +547,10 @@ void initiateWrongKeyExchange() {
     openedKeyLocks[currentKeyNumber] = true;
     updateKeyLedsAndLocks();
 
-    strcpy(textRow[0], "Entnehmen Sie den");
-    strcpy(textRow[1], "Schluessel an der");
-    strcpy(textRow[2], "roten LED");
-    strcpy(textRow[3], "");
+    strcpy(textRow[0], "Entnehmen Sie den   ");
+    strcpy(textRow[1], "Schluessel an der   ");
+    strcpy(textRow[2], "roten LED           ");
+    strcpy(textRow[3], "                    ");
 }
 void wrongKeyExchange() {
     // state repetition:
@@ -575,25 +575,25 @@ void initiateLoggedInKeySearch() {
 
     if (isKeyPresentArray[currentKeyNumber]) {  // Ist Schlüssel vorhanden?
         if (isEmployeePermissionedArray[currentKeyNumber]) {        // Ist Schlüssel für Mitarbeiter freigegeben?
-            strcpy(textRow[0], "Schluessel" + currentKeyNumber);
-            strcpy(textRow[1], "kann entnommen");
-            strcpy(textRow[2], "werden");
-            sprintf(textRow[3], "");
+            strcpy(textRow[0], "Schluessel " + currentKeyNumber);  //TODO Marcel 20 Zeichen
+            strcpy(textRow[1], "kann entnommen      ");
+            strcpy(textRow[2], "werden              ");
+            sprintf(textRow[3], "                    ");
 
             openedKeyLocks[currentKeyNumber] = true;
 
         } else {                            // Schlüssel ist nicht für Mitarbeiter freigegeben
-            strcpy(textRow[0], "Keine Berechtigung");
-            strcpy(textRow[1], "für Schlüssel");
-            strcpy(textRow[2], "" + currentKeyNumber);
-            sprintf(textRow[3], "");
+            strcpy(textRow[0], "Keine Berechtigung  ");
+            strcpy(textRow[1], "fuer Schluessel     ");
+            strcpy(textRow[2], "" + currentKeyNumber); //TODO Marcel 20 Zeichen
+            sprintf(textRow[3], "                    ");
         }
 
     } else {      // Schlüssel ist nicht vorhanden
-        sprintf(textRow[0], "Schluessel" + currentKeyNumber);
-        strcpy(textRow[1], "liegt bei");
-        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
-        sprintf(textRow[3], "");
+        sprintf(textRow[0], "Schluessel" + currentKeyNumber); //TODO Marcel 20 Zeichen
+        strcpy(textRow[1], "liegt bei           ");
+        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber])); //TODO Marcel 20 Zeichen
+        sprintf(textRow[3], "                    ");
     }
     updateKeyLedsAndLocks();
 
@@ -636,10 +636,10 @@ void initiateGuestKeySearch() {
     setStatusLed(RED);
     currentKeyNumber = keyNumberVar;
     keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
-    sprintf(textRow[0], "Schluessel " + currentKeyNumber);
-    strcpy(textRow[1], "liegt bei");
-    strcpy(textRow[2], "Mitarbeiter");
-    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
+    sprintf(textRow[0], "Schluessel " + currentKeyNumber); //TODO Marcel 20 Zeichen
+    strcpy(textRow[1], "liegt bei           ");
+    strcpy(textRow[2], "Mitarbeiter         ");
+    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber])); //TODO Marcel 20 Zeichen
 }
 void guestKeySearch() {
     // state repetition:
@@ -833,10 +833,10 @@ char keypadReadout() {
                     lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
                     // Text für LCD Display
-                    strcpy(textRow[0], "Schluesselnummer:");
-                    sprintf(textRow[1], "%c", firstKey);
-                    strcpy(textRow[2], "");
-                    strcpy(textRow[3], "");
+                    strcpy(textRow[0], "Schluesselnummer:   ");
+                    sprintf(textRow[1], "%c", firstKey); //TODO Marcel 20 Zeichen
+                    strcpy(textRow[2], "                    ");
+                    strcpy(textRow[3], "                    ");
 
                 } else {  // Zwei Zahlen nacheinander wurden gedrückt
 
@@ -844,19 +844,19 @@ char keypadReadout() {
 
                     if (keyNumber != 0 && keyNumber <= 50) { //Überprüft ob die eingegebene Zahl zwischen 1 und 50 liegt
                     // Text für LCD Display
-                    strcpy(textRow[0], "Schluesselnummer:");
-                    sprintf(textRow[1], "    %d", keyNumber);
-                    strcpy(textRow[2], "");
-                    strcpy(textRow[3], "");
+                    strcpy(textRow[0], "Schluesselnummer:   ");
+                    sprintf(textRow[1], "    %d", keyNumber); //TODO Marcel 20 Zeichen
+                    strcpy(textRow[2], "                    ");
+                    strcpy(textRow[3], "                    ");
 
                     Serial.print(keyNumber);
 
                     }
                     else{
-                    strcpy(textRow[0], "Schluesselnummer:");
-                    sprintf(textRow[1], "existiert nicht");
-                    strcpy(textRow[2], "");
-                    strcpy(textRow[3], "");
+                    strcpy(textRow[0], "Schluesselnummer:   ");
+                    sprintf(textRow[1], "existiert nicht     ");
+                    strcpy(textRow[2], "                    ");
+                    strcpy(textRow[3], "                    ");
                     }
 
                     firstKey = '\0';  // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
