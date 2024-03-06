@@ -575,7 +575,7 @@ void initiateLoggedInKeySearch() {
 
     if (isKeyPresentArray[currentKeyNumber]) {  // Ist Schlüssel vorhanden?
         if (isEmployeePermissionedArray[currentKeyNumber]) {        // Ist Schlüssel für Mitarbeiter freigegeben?
-            strcpy(textRow[0], "Schluessel " + currentKeyNumber);  //TODO Marcel 20 Zeichen
+            strcpy(textRow[0], "Schluessel        " + currentKeyNumber);  
             strcpy(textRow[1], "kann entnommen      ");
             strcpy(textRow[2], "werden              ");
             sprintf(textRow[3], "                    ");
@@ -585,14 +585,14 @@ void initiateLoggedInKeySearch() {
         } else {                            // Schlüssel ist nicht für Mitarbeiter freigegeben
             strcpy(textRow[0], "Keine Berechtigung  ");
             strcpy(textRow[1], "fuer Schluessel     ");
-            strcpy(textRow[2], "" + currentKeyNumber); //TODO Marcel 20 Zeichen
+            strcpy(textRow[2], "                  " + currentKeyNumber);
             sprintf(textRow[3], "                    ");
         }
 
     } else {      // Schlüssel ist nicht vorhanden
-        sprintf(textRow[0], "Schluessel" + currentKeyNumber); //TODO Marcel 20 Zeichen
+        sprintf(textRow[0], "Schluessel        " + currentKeyNumber);
         strcpy(textRow[1], "liegt bei           ");
-        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber])); //TODO Marcel 20 Zeichen
+        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
         sprintf(textRow[3], "                    ");
     }
     updateKeyLedsAndLocks();
@@ -636,10 +636,10 @@ void initiateGuestKeySearch() {
     setStatusLed(RED);
     currentKeyNumber = keyNumberVar;
     keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
-    sprintf(textRow[0], "Schluessel " + currentKeyNumber); //TODO Marcel 20 Zeichen
+    sprintf(textRow[0], "Schluessel        " + currentKeyNumber); 
     strcpy(textRow[1], "liegt bei           ");
     strcpy(textRow[2], "Mitarbeiter         ");
-    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber])); //TODO Marcel 20 Zeichen
+    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
 }
 void guestKeySearch() {
     // state repetition:
@@ -834,7 +834,7 @@ char keypadReadout() {
 
                     // Text für LCD Display
                     strcpy(textRow[0], "Schluesselnummer:   ");
-                    sprintf(textRow[1], "%c", firstKey); //TODO Marcel 20 Zeichen
+                    sprintf(textRow[1], "                 %c", firstKey);
                     strcpy(textRow[2], "                    ");
                     strcpy(textRow[3], "                    ");
 
@@ -845,7 +845,7 @@ char keypadReadout() {
                     if (keyNumber != 0 && keyNumber <= 50) { //Überprüft ob die eingegebene Zahl zwischen 1 und 50 liegt
                     // Text für LCD Display
                     strcpy(textRow[0], "Schluesselnummer:   ");
-                    sprintf(textRow[1], "    %d", keyNumber); //TODO Marcel 20 Zeichen
+                    sprintf(textRow[1], "                %d", keyNumber); 
                     strcpy(textRow[2], "                    ");
                     strcpy(textRow[3], "                    ");
 
