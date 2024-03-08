@@ -241,10 +241,10 @@ private:
                             /*TODO timer +*/ ";" + String(keyNumber) + ";" + ";" + "return");
                     }
                 } while (!unloggedChanges.isEmpty());
+                protocol.close();
             } else {
                 Serial.println("Couldn't write protocol.csv!");
             }
-            protocol.close();
         }
     }
 };

@@ -317,6 +317,11 @@ void initiateInactive() {
     updateKeyLedsAndLocks();
     openDoorLock();  // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
 
+    updateNewIsKeyPresentArray();
+    for (int i = 0; i < keySlotCount; i++) {
+        isKeyPresentArray[i] = newIsKeyPresentArray[i];
+    }
+
     strcpy(textRow[0], "Bitte Tuere        ");
     strcpy(textRow[1], "schliessen!         ");
     strcpy(textRow[2], "                    ");
