@@ -25,23 +25,23 @@ char textRow[4][178];                                      // Definition der Tex
 char lastTextRow[4][178];                                  //{{0},{0},{0},{0}};    letzten Zustand der Textzeile merken um Veränderungen zu erkennen!
 
 // stuff
-#define alarmSiren 2      // Pin-Definition für die Alarmsirene
-#define doorLock 7        // Pin-Definition für das Türschloss
-#define doorLockSensor 8  // Pin-Deginition für den Türschloss-Sensor
+#define alarmSiren 2      // Pin-Definition für die Alarmsirene //TODO: Pin-Definition anpassen
+#define doorLock 7        // Pin-Definition für das Türschloss //TODO: Pin-Definition anpassen
+#define doorLockSensor 8  // Pin-Deginition für den Türschloss-Sensor //TODO: Pin-Definition anpassen
 
 // RFID-Reader
-#define SS_PIN 10
-#define RST_PIN 9
+#define SS_PIN 10 //TODO: Pin-Definition anpassen
+#define RST_PIN 9 //TODO: Pin-Definition anpassen
 MFRC522 rfidReader(SS_PIN, RST_PIN);
 
 // SD-Card Reader
 Database* database;
-#define sdOut 53
+#define sdOut 53 //TODO: Pin-Definition anpassen
 
 // Status-LED
-#define statusLedRed 9     // Pin für den roten Kanal
-#define statusLedGreen 10  // Pin für den grünen Kanal
-#define statusLedBlue 11   // Pin für den blauen Kanal
+#define statusLedRed 22     // Pin für den roten Kanal
+#define statusLedGreen 23  // Pin für den grünen Kanal
+#define statusLedBlue 24   // Pin für den blauen Kanal
 
 enum LedColor {
     RED,
@@ -56,13 +56,13 @@ enum LedColor {
 LedColor statusLedColor = OFF;
 
 // Shift-Registers
-#define clockPinSerialOutSr 2
-#define latchPinSerialOutSr 3
-#define dataPinSerialOutSr 6
+#define clockPinSerialOutSr 2 //TODO: Pin-Definition anpassen
+#define latchPinSerialOutSr 3 //TODO: Pin-Definition anpassen
+#define dataPinSerialOutSr 6 //TODO: Pin-Definition anpassen
 
-#define clockPinKeyReedSr 1
-#define latchPinKeyReedSr 2
-#define dataPinKeyReedSr 3
+#define clockPinKeyReedSr 1 //TODO: Pin-Definition anpassen
+#define latchPinKeyReedSr 2 //TODO: Pin-Definition anpassen
+#define dataPinKeyReedSr 3 //TODO: Pin-Definition anpassen
 
 // Keypad
 const byte rowAmount = 4;     // vier Reihen
@@ -74,8 +74,8 @@ const char keys[rowAmount][columnAmount] = {
     {'7', '8', '9'},
     {'*', '0', '#'}};
 
-byte pinRows[rowAmount] = {9, 8, 7, 6};    // verbinde die Reihen mit diesen Pins
-byte pinColumn[columnAmount] = {5, 4, 3};  // verbinde die Spalten mit diesen Pins
+byte pinRows[rowAmount] = {8, 7, 6, 5};    // verbinde die Reihen mit diesen Pins
+byte pinColumn[columnAmount] = {4, 3, 2};  // verbinde die Spalten mit diesen Pins
 
 Keypad keypad = Keypad(makeKeymap(keys), pinRows, pinColumn, rowAmount, columnAmount);
 
