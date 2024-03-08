@@ -58,10 +58,7 @@ LedColor statusLedColor = OFF;
 // Shift-Registers
 #define clockPinSerialOutSr 2
 #define latchPinSerialOutSr 3
-
-#define dataPinRedKeyLedSr 6
-#define dataPinGreenKeyLedSr 4
-#define dataPinKeyLockSr 10
+#define dataPinSerialOutSr 6
 
 #define clockPinKeyReedSr 1
 #define latchPinKeyReedSr 2
@@ -122,7 +119,7 @@ boolean newIsKeyPresentArray[keySlotCount];
 
 boolean* isEmployeePermissionedArray;
 
-boolean openedKeyLocks[keySlotCount];
+int opendKeyLock = -1;              // saves the keyNumber of the key that is currently opened, else -1
 boolean redKeyLeds[keySlotCount];
 boolean greenKeyLeds[keySlotCount];
 
@@ -209,9 +206,7 @@ void setup() {
     pinMode(clockPinSerialOutSr, OUTPUT);
     pinMode(latchPinSerialOutSr, OUTPUT);
 
-    pinMode(dataPinRedKeyLedSr, OUTPUT);
-    pinMode(dataPinGreenKeyLedSr, OUTPUT);
-    pinMode(dataPinKeyLockSr, OUTPUT);
+    pinMode(dataPinSerialOutSr, OUTPUT);
 
     pinMode(clockPinKeyReedSr, OUTPUT);
     pinMode(latchPinKeyReedSr, OUTPUT);
@@ -317,8 +312,8 @@ void initiateInactive() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
+    opendKeyLock = -1;
     updateKeyLedsAndLocks();
     openDoorLock();  // Türschloss zu Beginn öffnen falls bei Start Tür nicht zu.
 
@@ -344,8 +339,8 @@ void initiateReady() {
     for (int i = 0; i < keySlotCount; i++) {
         redKeyLeds[i] = false;
         greenKeyLeds[i] = false;
-        openedKeyLocks[i] = false;
     }
+    opendKeyLock = -1;
     updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Scannen Sie Ihren   ");
@@ -412,7 +407,7 @@ void loggedIn() {
         keyLendingArray[takenKey] = currentEmployeeId;
         redKeyLeds[takenKey] = false;
         greenKeyLeds[takenKey] = false;
-        openedKeyLocks[takenKey] = false;
+        opendKeyLock = -1;
         updateKeyLedsAndLocks();
     }
 
@@ -443,7 +438,7 @@ void initiateLoggedInKeyReturn() {
         greenKeyLeds[i] = false;
     }
     redKeyLeds[currentKeyNumber] = true;
-    openedKeyLocks[currentKeyNumber] = true;
+    opendKeyLock = currentKeyNumber;
     updateKeyLedsAndLocks();
     openDoorLock();
 
@@ -461,7 +456,7 @@ void loggedInKeyReturn() {
     if (newIsKeyPresentArray[currentKeyNumber] == true) {
         isKeyPresentArray[currentKeyNumber] = true;
         keyLendingArray[currentKeyNumber] = 0;
-        openedKeyLocks[currentKeyNumber] = false;
+        opendKeyLock = -1;
         changeStateTo(LOGGED_IN);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -476,7 +471,7 @@ void initiateGuestKeyReturn() {
     }
     redKeyLeds[currentKeyNumber] = true;
     greenKeyLeds[currentKeyNumber] = false;
-    openedKeyLocks[currentKeyNumber] = true;
+    opendKeyLock = currentKeyNumber;
     updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Stecken Sie         ");
@@ -493,7 +488,7 @@ void guestKeyReturn() {
     if (newIsKeyPresentArray[currentKeyNumber] == true) {
         isKeyPresentArray[currentKeyNumber] = true;
         keyLendingArray[currentKeyNumber] = 0;
-        openedKeyLocks[currentKeyNumber] = false;
+        opendKeyLock = -1;
         changeStateTo(GUEST_WAITING);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -544,7 +539,7 @@ void initiateWrongKeyExchange() {
     }
     redKeyLeds[currentKeyNumber] = true;
     greenKeyLeds[currentKeyNumber] = false;
-    openedKeyLocks[currentKeyNumber] = true;
+    opendKeyLock = currentKeyNumber;
     updateKeyLedsAndLocks();
 
     strcpy(textRow[0], "Entnehmen Sie den   ");
@@ -561,7 +556,7 @@ void wrongKeyExchange() {
     if (newIsKeyPresentArray[currentKeyNumber] == false) {
         isKeyPresentArray[currentKeyNumber] = false;
         keyLendingArray[currentKeyNumber] = keyLendingArray[database->getKeyNumber(currentKeyId)];
-        openedKeyLocks[currentKeyNumber] = false;
+        opendKeyLock = -1;
         changeStateTo(GUEST_WAITING);
     } else if (isDoorReadyForClosing()) {
         changeStateTo(READY);
@@ -580,13 +575,14 @@ void initiateLoggedInKeySearch() {
             strcpy(textRow[2], "werden              ");
             sprintf(textRow[3], "                    ");
 
-            openedKeyLocks[currentKeyNumber] = true;
+            opendKeyLock = currentKeyNumber;
 
         } else {                            // Schlüssel ist nicht für Mitarbeiter freigegeben
             strcpy(textRow[0], "Keine Berechtigung  ");
             strcpy(textRow[1], "fuer Schluessel     ");
             strcpy(textRow[2], "                  " + currentKeyNumber);
             sprintf(textRow[3], "                    ");
+            opendKeyLock = -1;
         }
 
     } else {      // Schlüssel ist nicht vorhanden
@@ -594,6 +590,7 @@ void initiateLoggedInKeySearch() {
         strcpy(textRow[1], "liegt bei           ");
         strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
         sprintf(textRow[3], "                    ");
+        opendKeyLock = -1;
     }
     updateKeyLedsAndLocks();
 
@@ -610,7 +607,7 @@ void loggedInKeySearch() {
     if (takenKey != -1) {            // got Key taken?
         isKeyPresentArray[takenKey] = 0;
         keyLendingArray[takenKey] = currentEmployeeId;
-        openedKeyLocks[currentKeyNumber] = false;
+        opendKeyLock = -1;
         changeStateTo(LOGGED_IN);
     } else if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
@@ -906,18 +903,30 @@ int getTakenKey() {
     return getNotEqualIndex(isKeyPresentArray, newIsKeyPresentArray);
 }
 
-// TODO @Maxi neue Struktur der Schieberegister implementieren
+// TODO Test
 void updateKeyLedsAndLocks() {
     for (int i = 0; i < keySlotCount; i++) {
         digitalWrite(latchPinSerialOutSr, LOW);
-        digitalWrite(dataPinRedKeyLedSr, redKeyLeds[i]);
-        digitalWrite(dataPinGreenKeyLedSr, greenKeyLeds[i]);
-        digitalWrite(dataPinKeyLockSr, openedKeyLocks[i]);
+        digitalWrite(dataPinSerialOutSr, redKeyLeds[i]);
         digitalWrite(clockPinSerialOutSr, HIGH);
-        delay(1);  // TODO TEST if needed
         digitalWrite(clockPinSerialOutSr, LOW);
         digitalWrite(latchPinSerialOutSr, HIGH);
-        delay(1);  // TODO TEST if needed
+
+        digitalWrite(latchPinSerialOutSr, LOW);
+        digitalWrite(dataPinSerialOutSr, greenKeyLeds[i]);
+        digitalWrite(clockPinSerialOutSr, HIGH);
+        digitalWrite(clockPinSerialOutSr, LOW);
+        digitalWrite(latchPinSerialOutSr, HIGH);
+
+        digitalWrite(latchPinSerialOutSr, LOW);
+        if(i == opendKeyLock){
+            digitalWrite(dataPinSerialOutSr, true);
+        } else {
+            digitalWrite(dataPinSerialOutSr, false);
+        }
+        digitalWrite(clockPinSerialOutSr, HIGH);
+        digitalWrite(clockPinSerialOutSr, LOW);
+        digitalWrite(latchPinSerialOutSr, HIGH);
     }
 }
 
@@ -928,7 +937,6 @@ void updateNewIsKeyPresentArray() {
         // TODO TEST if mirrored
         newIsKeyPresentArray[i] = digitalRead(dataPinKeyReedSr);
         digitalWrite(clockPinKeyReedSr, LOW);
-        delay(1);  // TODO TEST if needed
     }
     digitalWrite(latchPinKeyReedSr, HIGH);
 }

@@ -233,7 +233,7 @@ private:
                 do {
                     int keyNumber = unloggedChanges.pop();
                     long employeeId = keyLendingArray[keyNumber];
-                    if (employeeId != 0) {  // TODO test writing
+                    if (employeeId != 0) {
                         protocol.println(
                             /*TODO timer +*/ ";" + String(keyNumber) + ";" + employeeMap.get(employeeId).name + ";" + "lending");
                     } else {
