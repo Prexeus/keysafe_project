@@ -633,11 +633,22 @@ void initiateGuestKeySearch() {
     setStatusLed(RED);
     currentKeyNumber = keyNumberVar;
     keyNumberVar = 0;                        // Zurücksetzen der keyNumberVar auf 0, für die nächste Suche eines Schlüssels
-    sprintf(textRow[0], "Schluessel        " + currentKeyNumber); 
-    strcpy(textRow[1], "liegt bei           ");
-    strcpy(textRow[2], "Mitarbeiter         ");
-    sprintf(textRow[3], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
+
+    if (isKeyPresentArray[currentKeyNumber]) {  // Ist Schlüssel vorhanden?
+        strcpy(textRow[0], "Schluessel        " + currentKeyNumber);  
+        strcpy(textRow[1], "ist im Schrank      ");
+        strcpy(textRow[2], "                   ");
+        sprintf(textRow[3], "                    ");
+
+    } else {      // Schlüssel ist nicht vorhanden
+        sprintf(textRow[0], "Schluessel        " + currentKeyNumber);
+        strcpy(textRow[1], "liegt bei           ");
+        strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
+        sprintf(textRow[3], "                    ");
+        opendKeyLock = -1;
+    }
 }
+
 void guestKeySearch() {
     // state repetition:
     static const long interval = 5000;       // Intervall in Millisekunden (hier 5 Sekunden)
