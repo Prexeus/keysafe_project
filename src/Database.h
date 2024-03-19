@@ -116,7 +116,7 @@ private:
         }
     }
 
-    //  Uncomment and complete the implementation
+    // TODO Uncomment and complete the implementation
     /*
     String getFormattedTime(DateTime now) {
         return String(now.minute(), DEC) + ":" +

@@ -1,1 +1,5 @@
-time;keyNumber;employeeId;employeeName;action
+time;keyNumber;employeeName;action
+24-01-29, 10:30Uhr;4;Hans Mueller;lending
+24-01-29, 15:46Uhr;4;Hans Mueller;return
+24-01-30, 10:35Uhr;9;Gertrud Peter;lending
+24-01-30, 10:35Uhr;14;Gertrud Peter;lending
