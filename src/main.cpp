@@ -180,7 +180,7 @@ void setup() {
     lcd.noBacklight();
     // Willkommenstext anzeigen
     strcpy(textRow[0], "IFU Stuttgart       ");
-    strcpy(textRow[1], "Schlüsselausgabe   ");
+    strcpy(textRow[1], "Schluesselausgabe   ");
     strcpy(textRow[2], "2024 Version 1.0    ");
     strcpy(textRow[3], "Tuer schliessen!    ");
     // Ausgabe der Zeilen aus den Textvariablen für Zeile 1 bis 4 des LCD Displays
@@ -591,6 +591,10 @@ void initiateLoggedInKeySearch() {
         }
 
     } else {      // Schlüssel ist nicht vorhanden
+
+        strcpy(textRow[2], "                    "); // Textzeile 3 wird geleert damit der Mitarbeitername korrekt angezeigt werden kann
+        taskText(textRow[2], 2);                    // Textzeile 3 wird aktualisiert
+
         sprintf(textRow[0], "Schluessel        " + currentKeyNumber);
         strcpy(textRow[1], "liegt bei           ");
         strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
@@ -646,6 +650,10 @@ void initiateGuestKeySearch() {
         sprintf(textRow[3], "                    ");
 
     } else {      // Schlüssel ist nicht vorhanden
+
+        strcpy(textRow[2], "                    "); // Textzeile 3 wird geleert damit der Mitarbeitername korrekt angezeigt werden kann
+        taskText(textRow[2], 2);                    // Textzeile 3 wird aktualisiert
+
         sprintf(textRow[0], "Schluessel        " + currentKeyNumber);
         strcpy(textRow[1], "liegt bei           ");
         strcpy(textRow[2], database->getEmployeeName(keyLendingArray[currentKeyNumber]));
