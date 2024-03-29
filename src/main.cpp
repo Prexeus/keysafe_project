@@ -834,57 +834,43 @@ char keypadReadout() {
     char key = keypad.getKey();
     unsigned long currentTime = millis();
 
-        if(buttonState == 0 && key == true) {                   //Tastenentprellung
-                // Taster wird gedrückt (steigende Flanke)
-                buttonState = 1;
-            } else if (buttonState == 1 && key == true) {
-                // Taster wird gehalten
-                buttonState = 2;
-            } else if (buttonState == 2 && key == false) {
-                // Taster wird losgelassen (fallende Flanke)
-                buttonState = 3;
-            } else if (buttonState == 3 && key == false) {
-                // Taster losgelassen
-                buttonState = 0;
-                if (isDigit(key)) {  // Überprüfe, ob die gedrückte Taste eine Zahl ist
+    if (isDigit(key)) {  // Überprüfe, ob die gedrückte Taste eine Zahl ist
 
-                if (firstKey == '\0') {  // Überprüfe, ob die erste Ziffer bereits gedrückt wurde
-                    // Speichere die erste gedrückte Zahl
-                    firstKey = key;
-                    lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
+        if (firstKey == '\0') {  // Überprüfe, ob die erste Ziffer bereits gedrückt wurde
+            // Speichere die erste gedrückte Zahl
+            firstKey = key;
+            lastKeyPressTime = currentTime;  // Setze die Zeit für die erste Ziffer
 
-                    // Text für LCD Display
-                    strcpy(textRow[0], "Schluesselnummer:   ");
-                    sprintf(textRow[1], "                 %c", firstKey);
-                    strcpy(textRow[2], "                    ");
-                    strcpy(textRow[3], "                    ");
+            // Text für LCD Display
+            strcpy(textRow[0], "Schluesselnummer:   ");
+            sprintf(textRow[1], "                  0%c", firstKey);
+            strcpy(textRow[2], "                    ");
+            strcpy(textRow[3], "                    ");
 
-                } else {  // Zwei Zahlen nacheinander wurden gedrückt
+        } else {  // Zwei Zahlen nacheinander wurden gedrückt
 
-                    keyNumber = (firstKey - '0') * 10 + (key - '0');  // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
+            keyNumber = (firstKey - '0') * 10 + (key - '0');  // Extrahiere numerischen Wert aus den beiden Zahlen und rechne zusammen
 
-                    if (keyNumber != 0 && keyNumber <= 50) { //Überprüft ob die eingegebene Zahl zwischen 1 und 50 liegt
-                    // Text für LCD Display
-                    strcpy(textRow[0], "Schluesselnummer:   ");
-                    sprintf(textRow[1], "                %d", keyNumber); 
-                    strcpy(textRow[2], "                    ");
-                    strcpy(textRow[3], "                    ");
+            if (keyNumber != 0 && keyNumber <= 50) { //Überprüft ob die eingegebene Zahl zwischen 1 und 50 liegt
+            // Text für LCD Display
+            strcpy(textRow[0], "Schluesselnummer:   ");
+            sprintf(textRow[1], "                %d", keyNumber); 
+            strcpy(textRow[2], "                    ");
+            strcpy(textRow[3], "                    ");
 
-                    Serial.print(keyNumber);
+            Serial.print(keyNumber);
 
-                    }
-                    else{
-                    strcpy(textRow[0], "Schluesselnummer:   ");
-                    sprintf(textRow[1], "existiert nicht     ");
-                    strcpy(textRow[2], "                    ");
-                    strcpy(textRow[3], "                    ");
-                    }
-
-                    firstKey = '\0';  // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
-                }
             }
+            else{
+            strcpy(textRow[0], "Schluesselnummer:   ");
+            sprintf(textRow[1], "existiert nicht     ");
+            strcpy(textRow[2], "                    ");
+            strcpy(textRow[3], "                    ");
+            }
+
+            firstKey = '\0';  // Setze firstKey zurück, um auf die nächste Zahlenkombination zu warten
         }
-    
+    }
 
     // Überprüfe, ob die Zeitgrenze überschritten wurde. Wenn ja, setze die erste Ziffer zurück
     if (firstKey != '\0' && currentTime - lastKeyPressTime >= resetTimeout) {
