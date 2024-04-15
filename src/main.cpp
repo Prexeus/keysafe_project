@@ -8,7 +8,6 @@
 #include <SD.h>                 // Library for SD Card Reader
 #include <SPI.h>
 
-// #include "State.cpp"
 #include "RfidReader.h"
 #include "Database.h"
 #include "SimpleFunctions.h"
