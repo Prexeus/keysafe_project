@@ -5,11 +5,11 @@
 #include <Arduino.h>
 #include <Keypad.h>             // Library for Keypad
 #include <LiquidCrystal_I2C.h>  // Library for I2C Display
-#include <MFRC522.h>            // Library for RFID Reader
 #include <SD.h>                 // Library for SD Card Reader
-#include <SPI.h>                // Library for SPI Communication (for RFID Reader)
+#include <SPI.h>
 
 // #include "State.cpp"
+#include "RfidReader.h"
 #include "Database.h"
 #include "SimpleFunctions.h"
 
@@ -30,9 +30,11 @@ char lastTextRow[4][178];                                  //{{0},{0},{0},{0}}; 
 #define doorLockSensor 8  // Pin-Deginition für den Türschloss-Sensor //TODO: Pin-Definition anpassen
 
 // RFID-Reader
-#define SS_PIN 10 //TODO: Pin-Definition anpassen
-#define RST_PIN 9 //TODO: Pin-Definition anpassen
-MFRC522 rfidReader(SS_PIN, RST_PIN);
+#define PN5180_NSS 53   //TODO: Pin-Definition anpassen
+#define PN5180_BUSY 48
+#define PN5180_RST 49
+RfidReader rfidReader(PN5180_NSS, PN5180_BUSY, PN5180_RST);
+
 
 // SD-Card Reader
 Database* database;
@@ -160,11 +162,8 @@ void closeDoorLock();
 char charAt(char* text, int pos);
 void taskText(char* text, byte line);
 char keypadReadout();
-boolean isRfidPresented();
-boolean isRfidKey(long rfidId);
-boolean isRfidEmployee(long rfidId);
-long getRfidId();
-boolean isKeyPresent(long rfidId);
+boolean isIdKey(long rfidId);
+boolean isIdEmployee(long rfidId);
 int getTakenKey();
 void updateKeyLedsAndLocks();
 void updateNewIsKeyPresentArray();
@@ -174,6 +173,7 @@ void updateNewIsKeyPresentArray();
 // setup:
 void setup() {
     Serial.begin(9600);
+    SPI.begin();
 
     // LCD Display initialisation
     lcd.init();
@@ -188,10 +188,6 @@ void setup() {
     taskText(textRow[1], 1);
     taskText(textRow[2], 2);
     taskText(textRow[3], 3);
-
-    // RFID Reader initialisation
-    SPI.begin();
-    rfidReader.PCD_Init();
 
     // SD-Card Reader initialisation
     pinMode(sdOut, OUTPUT);
@@ -358,9 +354,9 @@ void ready() {
 
     // state changeconditions:
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
-    if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
+    if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {
             currentKeyId = rfidId;
             currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
@@ -368,7 +364,7 @@ void ready() {
             } else {
                 changeStateTo(GUEST_KEY_RETURN);
             }
-        } else if (isRfidEmployee(rfidId)) {
+        } else if (isIdEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
@@ -419,9 +415,9 @@ void loggedIn() {
     // state changeconditions:
     keyNumberVar = keypadReadout();  // Auslesen des Keypads
 
-    if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
+    if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {  // Schlüssel gescannt?
             currentKeyId = rfidId;
             currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
@@ -517,9 +513,9 @@ void guestWaiting() {
     // state repetition:
 
     // state changeconditions:
-    if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
+    if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {
             currentKeyId = rfidId;
             currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
@@ -527,7 +523,7 @@ void guestWaiting() {
             } else {
                 changeStateTo(GUEST_KEY_RETURN);
             }
-        } else if (isRfidEmployee(rfidId)) {
+        } else if (isIdEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
@@ -620,9 +616,9 @@ void loggedInKeySearch() {
         changeStateTo(LOGGED_IN);
     } else if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(LOGGED_IN);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "loggedIn" mit der information welcher Mitarbeiter zuletzt angemeldet war
-    } else if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {  // Schlüssel gescannt?
+    } else if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {  // Schlüssel gescannt?
             currentKeyId = rfidId;
             currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
@@ -670,9 +666,9 @@ void guestKeySearch() {
     // state changeconditions:
     if (currentMillis - currentStateEnteredTime >= interval) {
         changeStateTo(READY);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "READY"
-    } else if (isRfidPresented()) {
-        long rfidId = getRfidId();
-        if (isRfidKey(rfidId)) {
+    } else if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {
             currentKeyId = rfidId;
             currentKeyNumber = database->getKeyNumber(currentKeyId);
             if (isKeyPresentArray[currentKeyNumber]) {  // Schlüssel Platz belegt?
@@ -680,7 +676,7 @@ void guestKeySearch() {
             } else {
                 changeStateTo(GUEST_KEY_RETURN);
             }
-        } else if (isRfidEmployee(rfidId)) {
+        } else if (isIdEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
         }
@@ -882,28 +878,12 @@ char keypadReadout() {
 }
 
 // RFID Funktionen
-boolean isRfidPresented() {
-    return (rfidReader.PICC_IsNewCardPresent() && rfidReader.PICC_ReadCardSerial());
-}
-
-boolean isRfidKey(long rfidId) {
+boolean isIdKey(long rfidId) {
     return database->isIdKey(rfidId);
 }
 
-boolean isRfidEmployee(long rfidId) {
+boolean isIdEmployee(long rfidId) {
     return database->isIdEmployee(rfidId);
-}
-
-long getRfidId() {
-    long code = 0;
-    for (byte i = 0; i < rfidReader.uid.size; i++) {
-        code = ((code + rfidReader.uid.uidByte[i]) * 10);
-    }
-    return code;
-}
-
-boolean isKeyPresent(long rfidId) {
-    return false;  // database->isKeyPresent(rfidId) || currentChangeArray.contains(rfidId);
 }
 
 /**
