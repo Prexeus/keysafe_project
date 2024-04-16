@@ -28,18 +28,18 @@ struct EmployeeData {
  * @brief Structure to represent unlogged changes to keys.
  */
 struct UnloggedKeyChange {
-    long keyId;      /**< The ID of the key. */
+    long keyId;        /**< The ID of the key. */
     boolean isPresent; /**< Indicates whether the key is present. */
-    long employeeId; /**< The ID of the employee. */
+    long employeeId;   /**< The ID of the employee. */
 };
 
 /**
  * @brief Class for managing key and employee data, aswell as SD-card handling.
  */
 class Database {
-private:
+   private:
     static const int maxRowCount = 70;
-    SimpleMap<long, int, keySlotCount> keyMap; /**< Map for keys. */
+    SimpleMap<long, int, keySlotCount> keyMap;                   /**< Map for keys. */
     SimpleMap<long, EmployeeData, maxEmployeeCount> employeeMap; /**< Map for employee data. */
 
     /**
@@ -128,9 +128,9 @@ private:
     */
 
    public:
-   /**
+    /**
      * @brief Constructor for the Database class.
-     * 
+     *
      * @param sdCard The SD card object for data source.
      */
     Database(SDClass sdCard) {
@@ -209,7 +209,7 @@ private:
         return employeeMap.get(id).name;
     }
 
-   /**
+    /**
      * @brief Returns the keyPermissionArray of the given employeeId.
      *
      * @param id The employeeId.

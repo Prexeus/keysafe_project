@@ -5,11 +5,11 @@
  * @brief RFIDReader class for interfacing with an RFID reader.
  */
 class RfidReader {
-private:
-    PN5180ISO15693 nfc; /**< Instance of the PN5180ISO15693 RFID reader. */
+   private:
+    PN5180ISO15693 nfc;        /**< Instance of the PN5180ISO15693 RFID reader. */
     uint8_t lastTagIdArray[8]; /**< Last RFID tag ID read by the reader. */
 
-public:
+   public:
     /**
      * @brief Constructor for the RFIDReader class.
      *
@@ -35,16 +35,27 @@ public:
     }
 
     /**
-     * @brief Converts the last read RFID tag ID from uint8_t* to long.
+     * @brief Gets the last read RFID tag ID.
      *
-     * @return long The last read RFID tag ID converted to a long.
+     * @return long The last read RFID tag ID.
      */
     long getLastReadId() {
-        long convertedId = 0;
+        return arrayToLong(lastTagIdArray);
+    }
+
+    /**
+     * @brief Converts an array of 8 uint8_t to a long.
+     *
+     * @param array The array of 8 uint8_t to convert.
+     * @return long The array converted to a long.
+     */
+    static long arrayToLong(uint8_t array[8]) {
+        long result = 0;
+        // iterate over the array
         for (int i = 0; i < 8; i++) {
-            convertedId <<= 8; // shift left by 8 bits
-            convertedId |= lastTagIdArray[i]; // add current byte to convertedId
+            // shift the result 8 bits to the left and add the current byte
+            result |= ((long)array[i]) << (8 * i);
         }
-        return convertedId;
+        return result;
     }
 };
