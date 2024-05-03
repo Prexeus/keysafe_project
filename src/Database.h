@@ -230,6 +230,7 @@ class Database {
         if (!unloggedChanges.isEmpty()) {
             File protocol = SD.open("protocol.csv");  // allows writing and reading
             if (protocol) {
+                protocol.seek(protocol.size());
                 do {
                     int keyNumber = unloggedChanges.pop();
                     long employeeId = keyLendingArray[keyNumber];
@@ -245,6 +246,23 @@ class Database {
             } else {
                 Serial.println("Couldn't write protocol.csv!");
             }
+        }
+    }
+
+    /**
+     * @brief Adds a new teached RFID to the teachedRfid.csv file.
+     * 
+     * @param rfidId The ID of the teached RFID.
+     */
+    void addNewTeachedRfid(long rfidId) {
+        File file = SD.open("teachedRfid.csv", FILE_WRITE);
+        if (file) {
+            file.seek(file.size());
+            file.print("\n");
+            file.println(/*TODO timer +*/ ";" + rfidId);
+            file.close();
+        } else {
+            Serial.println("Couldn't write keyData.csv!");
         }
     }
 };

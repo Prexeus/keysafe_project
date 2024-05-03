@@ -105,7 +105,9 @@ enum State {
     WRONG_KEY_EXCHANGE,
 
     LOGGED_IN_KEY_SEARCH,
-    GUEST_KEY_SEARCH
+    GUEST_KEY_SEARCH,
+
+    RFID_TEACH_IN
 };
 
 
@@ -129,6 +131,8 @@ long currentKeyNumber;
 long currentEmployeeId;
 
 unsigned long currentStateEnteredTime;
+
+static const long adminTeachInRfid = 1234567890;  //TODO: RFID-Nummer für Admin anpassen
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function declarations:
@@ -166,6 +170,8 @@ boolean isIdEmployee(long rfidId);
 int getTakenKey();
 void updateKeyLedsAndLocks();
 void updateNewIsKeyPresentArray();
+void initiateRfidTeachIn();
+void rfidTeachIn();
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +257,9 @@ void loop() {
             break;
         case GUEST_KEY_SEARCH:
             guestKeySearch();
+            break;
+        case RFID_TEACH_IN:
+            rfidTeachIn();
             break;
         default:
             break;
@@ -366,6 +375,8 @@ void ready() {
         } else if (isIdEmployee(rfidId)) {
             currentEmployeeId = rfidId;
             changeStateTo(LOGGED_IN);
+        } else if (rfidId == adminTeachInRfid) {
+            changeStateTo(RFID_TEACH_IN);
         }
     } else if (keyNumberVar != 0) {
         changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
@@ -683,6 +694,40 @@ void guestKeySearch() {
         changeStateTo(READY);
     }
 }
+
+void initiateRfidTeachIn() {
+    strcpy(textRow[0], "Schluessel oder     ");
+    strcpy(textRow[1], "Mitarbeiterchip     ");
+    strcpy(textRow[2], "zum Anlernen        ");
+    strcpy(textRow[3], "einscannen          ");
+}
+
+void rfidTeachIn() {
+    // state repetition:
+    blinkStatusLed(WHITE);
+
+    // state changeconditions:
+    static const long interval = 10000;       // Intervall in Millisekunden (hier 10 Sekunden)
+    unsigned long currentMillis = millis();  // aktuelle Millisekunden speichern
+
+    // state changeconditions:
+    if (currentMillis - currentStateEnteredTime >= interval) {
+        changeStateTo(READY);  // Wenn das Intervall abgelaufen ist, wechsle in den Zustand "READY"
+    } else if (rfidReader.isTagPresented()) {
+        long rfidId = rfidReader.getLastReadId();
+        if (isIdKey(rfidId)) {
+        } else if (isIdEmployee(rfidId)) {
+        } else if (rfidId == adminTeachInRfid) {
+        } else {
+            database->addNewTeachedRfid(rfidId);
+            changeStateTo(READY);
+        }
+    } else if (keyNumberVar != 0) {
+        changeStateTo(GUEST_KEY_SEARCH);  // Wenn eine Zahlenkombination eingegeben wurde wechsle in guestKeySearch
+    }
+}
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // functions:
